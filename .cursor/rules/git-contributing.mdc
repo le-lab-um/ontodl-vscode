@@ -1,0 +1,47 @@
+---
+description: Git policy for agents — branches, commits, and pull requests
+alwaysApply: true
+---
+
+# Agent development
+
+Source: `CONTRIBUTING.md`. Follow these rules for every code change.
+Do not write to `main`.
+
+## Branches
+
+- One branch per task, before editing: `initials/feature-name`.
+- `initials` are the human author's. If you do not know them, ask. Do not invent them.
+- `feature-name` is short kebab-case.
+- Open a pull request when the task is done. The branch is deleted after it is merged.
+
+```
+abc/uppercase-diagnostics
+```
+
+## Commits
+
+Commit only when the user asks. Each commit must be readable by a person: split large diffs.
+
+Message format is short and has no final period. The prefix is only `feature`, `fix`, `test`, or `chore`:
+
+```
+fix: correct diagnostic regeneration
+
+AI-assisted: yes (Grok 4.7)
+```
+
+- `feature` is a new capability; `fix` is a correction; `test` is tests only; `chore` is everything else (build, deps, config).
+- Work done by an LLM or agent always ends with `AI-assisted: yes (<model>)`.
+- With no model assistance: `AI-assisted: no`.
+
+## Pull request
+
+Before requesting review:
+
+1. Update the branch with `main` and resolve conflicts.
+2. `npm run compile` must pass.
+3. `npm run test` must pass.
+4. Confirm that previously implemented behavior still works.
+
+Do not request review while the branch is behind `main`, or while compile or tests fail.
