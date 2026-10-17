@@ -5,6 +5,14 @@
 	"main": "./out/index.js",
 	"types": "./out/index.d.ts",
 	"scripts": {
-		"compile": "tsc -p tsconfig.json"
+		"generate": "java -jar node_modules/antlr4ng-cli/antlr4-4.13.2-SNAPSHOT-complete.jar -Dlanguage=TypeScript -visitor -listener -Xexact-output-dir -o src/generated grammar/OntoDLPlus.g4",
+		"compile": "npm run generate && tsc -p tsconfig.json",
+		"test": "npm run compile && node --test out/test"
+	},
+	"dependencies": {
+		"antlr4ng": "^3.0.16"
+	},
+	"devDependencies": {
+		"antlr4ng-cli": "^2.0.0"
 	}
 }

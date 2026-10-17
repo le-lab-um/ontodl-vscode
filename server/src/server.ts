@@ -33,7 +33,6 @@ const documents = new TextDocuments(TextDocument);
 
 let hasConfigurationCapability = false;
 let hasWorkspaceFolderCapability = false;
-let hasDiagnosticRelatedInformationCapability = false;
 
 connection.onInitialize((params: InitializeParams) => {
 	const capabilities = params.capabilities;
@@ -46,12 +45,6 @@ connection.onInitialize((params: InitializeParams) => {
 	hasWorkspaceFolderCapability = !!(
 		capabilities.workspace && !!capabilities.workspace.workspaceFolders
 	);
-	hasDiagnosticRelatedInformationCapability = !!(
-		capabilities.textDocument &&
-		capabilities.textDocument.publishDiagnostics &&
-		capabilities.textDocument.publishDiagnostics.relatedInformation
-	);
-
 	const result: InitializeResult = {
 		capabilities: {
 			textDocumentSync: TextDocumentSyncKind.Incremental,
@@ -162,8 +155,7 @@ connection.languages.diagnostics.on(async (params) => {
  * language package from depending on VS Code or the LSP protocol.
  */
 async function validateTextDocument(textDocument: TextDocument): Promise<Diagnostic[]> {
-	const settings = await getDocumentSettings(textDocument.uri);
-	const result = analyze(textDocument.getText(), settings.maxNumberOfProblems);
+	const result = analyze(textDocument.getText());
 
 	return result.diagnostics.map(diagnostic => {
 		const lspDiagnostic: Diagnostic = {
@@ -177,25 +169,6 @@ async function validateTextDocument(textDocument: TextDocument): Promise<Diagnos
 			message: diagnostic.message,
 			source: 'ontodl'
 		};
-
-		if (hasDiagnosticRelatedInformationCapability) {
-			lspDiagnostic.relatedInformation = [
-				{
-					location: {
-						uri: textDocument.uri,
-						range: Object.assign({}, lspDiagnostic.range)
-					},
-					message: 'Spelling matters'
-				},
-				{
-					location: {
-						uri: textDocument.uri,
-						range: Object.assign({}, lspDiagnostic.range)
-					},
-					message: 'Particularly for names'
-				}
-			];
-		}
 
 		return lspDiagnostic;
 	});

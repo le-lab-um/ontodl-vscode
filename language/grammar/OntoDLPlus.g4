@@ -1,84 +1,79 @@
-// OntoDL+ syntactic grammar
-//
-// Reconstructs the language described in:
-// Alexandre Costa Dias, "ONTODL+: an ontology description language and its
-// compiler", Master's thesis, University of Minho, 2021.
-// https://hdl.handle.net/1822/81340
-//
-// Licensed under CC BY-NC 4.0. See NOTICE.md for attribution.
-// This file has no semantic actions and is not the original compiler grammar.
-// See grammar/NOTES.md for sources, keyword choices, and gaps.
-
 grammar OntoDLPlus;
 
-ontologia
-    : 'Ontologia' TEXT atributosSecao? conceitos individuos? relacoes triplos restricoes? '.'
+ontology
+    : header attributesSection? conceptsSection individualsSection? relationsSection triplesSection restrictionsSection? '.' EOF
     ;
 
-atributosSecao
-    : atributosKw '{' (expandStmt | atributoDeclList) '}'
+header
+    : ('Ontologia' | 'Ontology') IDENTIFIER
     ;
 
-atributoDeclList
-    : atributoDecl (',' atributoDecl)*
+attributesSection
+    : attributesKeyword '{' (expandStatement | attributeDeclarationList)* '}'
     ;
 
-atributoDecl
-    : TEXT ':' tipo
+attributeDeclarationList
+    : attributeDeclaration (',' attributeDeclaration)*
     ;
 
-conceitos
-    : conceitosKw '{' (expandStmt | conceitoList) '}'
+attributeDeclaration
+    : IDENTIFIER ':' type
     ;
 
-conceitoList
-    : conceito (',' conceito)*
+conceptsSection
+    : conceptsKeyword '{' (expandStatement | conceptList)* '}'
     ;
 
-conceito
-    : TEXT atributos?
+conceptList
+    : concept (',' concept)*
     ;
 
-atributos
-    : '[' atributoRef (',' atributoRef)* ']'
+concept
+    : IDENTIFIER attributeReferences?
     ;
 
-atributoRef
-    : TEXT (':' tipo)?
+attributeReferences
+    : '[' attributeReference (',' attributeReference)* ']'
     ;
 
-tipo
-    : TEXT
+attributeReference
+    : IDENTIFIER (':' type)?
+    ;
+
+type
+    : 'string'
+    | 'int'
     | 'enum' '(' enumValue (',' enumValue)* ')'
     ;
 
 enumValue
-    : atom
+    : IDENTIFIER
+    | NUMBER
     ;
 
-individuos
-    : 'individuos' '{' (expandStmt | individuoList) '}'
+individualsSection
+    : individualsKeyword '{' (expandStatement | individualList)* '}'
     ;
 
-individuoList
-    : TEXT TEXT? (',' TEXT TEXT?)*
+individualList
+    : IDENTIFIER (',' IDENTIFIER)*
     ;
 
-relacoes
-    : relacoesKw '{' (expandStmt | relacaoList) '}'
+relationsSection
+    : relationsKeyword '{' (expandStatement | relationList)* '}'
     ;
 
-relacaoList
-    : relacao (',' relacao)*
+relationList
+    : relation (',' relation)*
     ;
 
-relacao
-    : TEXT ('[' relInf (',' relInf)* ']')?
+relation
+    : IDENTIFIER ('[' relationInformation (',' relationInformation)* ']')?
     ;
 
-relInf
-    : 'domain' ':' TEXT
-    | 'codomain' ':' TEXT
+relationInformation
+    : domainKeyword ':' IDENTIFIER
+    | counterdomainKeyword ':' IDENTIFIER
     | 'props' ':' properties
     ;
 
@@ -88,116 +83,197 @@ properties
     ;
 
 property
-    : 'bijection'
+    : 'bijecao'
+    | 'bijection'
+    | 'injecao'
     | 'injection'
+    | 'sobrejecao'
     | 'surjection'
+    | 'abstracao'
     | 'abstraction'
+    | 'funcao'
     | 'function'
+    | 'representacao'
     | 'representation'
+    | 'sobrejetiva'
     | 'surjective'
+    | 'simples'
     | 'simple'
+    | 'inteira'
     | 'entire'
+    | 'injetiva'
     | 'injective'
-    | inverseKw '=' TEXT
+    | inverseKeyword '=' IDENTIFIER
     ;
 
-triplos
-    : 'triplos' '{' (expandStmt | triploList) '}'
+triplesSection
+    : triplesKeyword '{' (expandStatement | tripleList)* '}'
     ;
 
-triploList
-    : triplo (';' triplo)*
+tripleList
+    : triple (';' triple)*
     ;
 
-triplo
-    : '('? TEXT '=' iofKw '=>' TEXT atribInsts? ')'?
-    | '('? TEXT '=' pofKw '=>' TEXT ')'?
-    | '('? TEXT '=' isaKw '=>' TEXT ')'?
-    | '('? TEXT '=' synKw '=>' TEXT ')'?
-    | '('? TEXT '=' TEXT '=>' TEXT ')'?
-    | TEXT '=[' relacionamentos (';' relacionamentos)* ']'
+triple
+    : '('? IDENTIFIER '=' tripleRelation relationAttribute? '=>' IDENTIFIER attributeInstances? ')'?
+    | IDENTIFIER '=[' relationship (';' relationship)* ']'
     ;
 
-relacionamentos
-    : TEXT '=>' TEXT (',' relMultiplo)*
-    | synKw '=>' TEXT (',' relMultiplo)*
-    | isaKw '=>' TEXT (',' relMultiplo)*
-    | pofKw '=>' TEXT (',' relMultiplo)*
-    | iofKw '=>' TEXT atribInsts? (',' relMultiplo)*
+tripleRelation
+    : iofKeyword
+    | pofKeyword
+    | isaKeyword
+    | synonymKeyword
+    | IDENTIFIER
     ;
 
-relMultiplo
-    : ('=>')? TEXT
+relationship
+    : tripleRelation relationAttribute? '=>' IDENTIFIER attributeInstances? (',' groupedObject)*
     ;
 
-atribInsts
-    : '[' atribInst (',' atribInst)* ']'
+groupedObject
+    : IDENTIFIER attributeInstances?
     ;
 
-atribInst
-    : TEXT '=' atom
+relationAttribute
+    : attributeInstances
     ;
 
-restricoes
-    : restricoesKw '{' constraint* '}'
+attributeInstances
+    : '[' attributeInstance (',' attributeInstance)* ']'
     ;
 
-constraint
+attributeInstance
+    : IDENTIFIER '=' atom
+    ;
+
+restrictionsSection
+    : restrictionsKeyword '{' (expandStatement | restriction)+ '}'
+    ;
+
+restriction
     : constraintAtom ':-' constraintBody '.'
     ;
 
 constraintBody
-    : constraintDisj
+    : constraintConjunction (';' constraintConjunction)*
     ;
 
-constraintDisj
-    : constraintConj (';' constraintConj)*
+constraintConjunction
+    : constraintPrimitive (',' constraintPrimitive)*
     ;
 
-constraintConj
-    : constraintPrim (',' constraintPrim)*
-    ;
-
-constraintPrim
+constraintPrimitive
     : '(' constraintBody ')'
-    | 'not' '(' constraintBody ')'
+    | negationKeyword '(' constraintBody ')'
     | constraintAtom
     ;
 
 constraintAtom
-    : TEXT '=' TEXT '=>' TEXT
-    | TEXT '==' atom
-    | TEXT NEQ atom
+    : IDENTIFIER '=' IDENTIFIER '=>' IDENTIFIER
+    | IDENTIFIER '==' atom
+    | IDENTIFIER '\\=' atom
     ;
 
-expandStmt
-    : 'expand' fileName ';'
+expandStatement
+    : 'expand' expandPath ';'
     ;
 
-fileName
-    : TEXT ('.' TEXT)+
+expandPath
+    : (IDENTIFIER | NUMBER | '.' | '/')+
     ;
 
 atom
-    : TEXT
+    : IDENTIFIER
     | STRING
     | NUMBER
     ;
 
-atributosKw   : 'atributos' | 'attributes' ;
-conceitosKw   : 'conceitos' | 'concepts' ;
-relacoesKw    : 'relacoes' | 'relations' ;
-restricoesKw  : 'restricoes' | 'restrictions' ;
-inverseKw     : 'inverseOf' | 'inversaDe' ;
-iofKw         : 'iof' | 'instancia' ;
-pofKw         : 'pof' | 'parte' ;
-isaKw         : 'is-a' | 'subclasse' ;
-synKw         : 'synonym' | 'sinonimo' ;
+attributesKeyword
+    : 'atributos'
+    | 'attributes'
+    | 'dataProperties'
+    | 'propriedadesDados'
+    ;
 
-NEQ : '\\=' ;
+conceptsKeyword
+    : 'conceitos'
+    | 'concepts'
+    | 'classes'
+    ;
+
+individualsKeyword
+    : 'individuos'
+    | 'individuals'
+    ;
+
+relationsKeyword
+    : 'relacoes'
+    | 'relationships'
+    | 'objectProperties'
+    | 'propriedadesObjetos'
+    ;
+
+triplesKeyword
+    : 'triplos'
+    | 'triples'
+    ;
+
+restrictionsKeyword
+    : 'restricoes'
+    | 'restrictions'
+    ;
+
+domainKeyword
+    : 'domain'
+    | 'dominio'
+    ;
+
+counterdomainKeyword
+    : 'contradominio'
+    | 'codiminio'
+    | 'counterdomain'
+    | 'codomain'
+    ;
+
+isaKeyword
+    : 'is-a'
+    | 'subclasse'
+    | 'a'
+    | 'subClassOf'
+    ;
+
+iofKeyword
+    : 'iof'
+    | 'instancia'
+    | 'instanceof'
+    | 'type'
+    ;
+
+synonymKeyword
+    : 'synonym'
+    | 'sinonimo'
+    ;
+
+pofKeyword
+    : 'pof'
+    | 'parte'
+    | 'partOf'
+    ;
+
+inverseKeyword
+    : 'inversaDe'
+    | 'inverseOf'
+    ;
+
+negationKeyword
+    : 'not'
+    | '!'
+    | 'nao'
+    ;
 
 NUMBER
-    : [0-9]+
+    : '-'? [0-9]+
     ;
 
 STRING
@@ -205,16 +281,12 @@ STRING
     | '\'' (~['\r\n])* '\''
     ;
 
-TEXT
-    : [a-zA-Z_\u00C0-\u024F] [a-zA-Z0-9_\-\u00C0-\u024F]*
+IDENTIFIER
+    : [a-zA-Z\u00C0-\u024F] [a-zA-Z0-9_\-/\u00C0-\u024F]*
     ;
 
 LINE_COMMENT
-    : '//' ~[\r\n]* -> skip
-    ;
-
-BLOCK_COMMENT
-    : '/*' .*? '*/' -> skip
+    : '%' ~[\r\n]* -> skip
     ;
 
 WS
