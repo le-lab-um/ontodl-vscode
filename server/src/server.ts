@@ -22,6 +22,7 @@ import {
 import {
 	TextDocument
 } from 'vscode-languageserver-textdocument';
+import { analyze } from '@ontodl/language';
 
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -153,49 +154,51 @@ connection.languages.diagnostics.on(async (params) => {
 	}
 });
 
+/**
+ * Adapts diagnostics produced by the language analyzer to the LSP format.
+ *
+ * The analyzer reports offsets into the document text, while LSP expects
+ * line-and-character positions. Keeping this conversion here prevents the
+ * language package from depending on VS Code or the LSP protocol.
+ */
 async function validateTextDocument(textDocument: TextDocument): Promise<Diagnostic[]> {
-	// In this simple example we get the settings for every validate run.
 	const settings = await getDocumentSettings(textDocument.uri);
+	const result = analyze(textDocument.getText(), settings.maxNumberOfProblems);
 
-	// The validator creates diagnostics for all uppercase words length 2 and more
-	const text = textDocument.getText();
-	const pattern = /\b[A-Z]{2,}\b/g;
-	let m: RegExpExecArray | null;
-
-	let problems = 0;
-	const diagnostics: Diagnostic[] = [];
-	while ((m = pattern.exec(text)) && problems < settings.maxNumberOfProblems) {
-		problems++;
-		const diagnostic: Diagnostic = {
-			severity: DiagnosticSeverity.Warning,
+	return result.diagnostics.map(diagnostic => {
+		const lspDiagnostic: Diagnostic = {
+			severity: diagnostic.severity === 'error'
+				? DiagnosticSeverity.Error
+				: DiagnosticSeverity.Warning,
 			range: {
-				start: textDocument.positionAt(m.index),
-				end: textDocument.positionAt(m.index + m[0].length)
+				start: textDocument.positionAt(diagnostic.start),
+				end: textDocument.positionAt(diagnostic.end)
 			},
-			message: `${m[0]} is all uppercase.`,
-			source: 'ex'
+			message: diagnostic.message,
+			source: 'ontodl'
 		};
+
 		if (hasDiagnosticRelatedInformationCapability) {
-			diagnostic.relatedInformation = [
+			lspDiagnostic.relatedInformation = [
 				{
 					location: {
 						uri: textDocument.uri,
-						range: Object.assign({}, diagnostic.range)
+						range: Object.assign({}, lspDiagnostic.range)
 					},
 					message: 'Spelling matters'
 				},
 				{
 					location: {
 						uri: textDocument.uri,
-						range: Object.assign({}, diagnostic.range)
+						range: Object.assign({}, lspDiagnostic.range)
 					},
 					message: 'Particularly for names'
 				}
 			];
 		}
-		diagnostics.push(diagnostic);
-	}
-	return diagnostics;
+
+		return lspDiagnostic;
+	});
 }
 
 connection.onDidChangeWatchedFiles(_change => {
