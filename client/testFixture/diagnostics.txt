@@ -1,1 +1,5 @@
-ANY browsers, ANY OS.
+Ontology demo
+conceitos { C }
+relacoes { r }
+triplos { x = iof => C }
+.

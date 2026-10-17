@@ -1,0 +1,30 @@
+Ontologia mapa
+
+atributos {
+    distância:string,
+    descrição:string,
+    distrito:string,
+    nome:string,
+    população:string
+}
+
+conceitos {
+    Ligação[distância],
+    Cidade[descrição, distrito, nome, população]
+}
+
+individuos { brg, bcl, ptl, lig-ptl-bcl }
+
+relacoes {
+    temDestino[domain: Ligação, codomain: Cidade],
+    temOrigem[domain: Ligação, codomain: Cidade],
+    éDestinoDe[domain: Cidade, codomain: Ligação, props: inversaDe=temDestino],
+    éOrigemDe[domain: Cidade, codomain: Ligação, props: inversaDe=temOrigem]
+}
+
+triplos {
+    brg = iof => Cidade [descrição="Cidade dos Arcebispos", distrito="Braga", nome="Braga", população="140000"];
+    bcl = iof => Cidade [descrição="Cidade do Galo", distrito="Braga", nome="Barcelos", população="60000"];
+    ptl = iof => Cidade [descrição="Vila mais antiga de Portugal", distrito="Viana do Castelo", nome="Ponte de Lima", população="70000"];
+    lig-ptl-bcl =[ iof => Ligação[distância="19"]; temDestino => bcl; temOrigem => ptl]
+} .

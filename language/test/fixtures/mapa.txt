@@ -1,0 +1,44 @@
+Ontologia mapa
+
+conceitos {
+    Ligação[distância:string],
+    Cidade[descrição:string, distrito:string, nome:string, população:string]
+}
+
+individuos {
+    brg, bcl, ptl, gmr, fml, prt, vct,
+    lig-ptl-bcl, lig-ptl-brg, lig-brg-bcl, lig-brg-gmr, lig-brg-fml, lig-gmr-fml,
+    lig-fml-bcl, lig-fml-prt, lig-bcl-vct, lig-vct-prt, lig-gmr-prt
+}
+
+relacoes {
+    temDestino,
+    temOrigem,
+    éDestinoDe,
+    éOrigemDe
+}
+
+triplos {
+    brg = iof => Cidade [descrição="Cidade dos Arcebispos", distrito="Braga", nome="Braga", população="140000"];
+    bcl = iof => Cidade [descrição="Cidade do Galo", distrito="Braga", nome="Barcelos", população="60000"];
+    ptl = iof => Cidade [descrição="Vila mais antiga de Portugal", distrito="Viana do Castelo", nome="Ponte de Lima", população="70000"];
+    gmr = iof => Cidade [descrição="Cidade berço", distrito="Braga", nome="Guimarães", população="80000"];
+    fml = iof => Cidade [descrição="Princesa do Ave", distrito="Braga", nome="Famalicão", população="90000"];
+    prt = iof => Cidade [descrição="Cidade invicta", distrito="Porto", nome="Porto", população="100000"];
+    vct = iof => Cidade [descrição="Cidade dos pescadores", distrito="Viana do Castelo", nome="Viana do Castelo", população="60000"];
+    lig-ptl-bcl = iof => Ligação[distância="19"];
+    lig-ptl-bcl = temDestino => bcl;
+    lig-ptl-bcl = temOrigem => ptl;
+    bcl = éDestinoDe => lig-ptl-bcl;
+    ptl = éOrigemDe => lig-ptl-bcl;
+    lig-ptl-brg = iof => Ligação[distância="31"];
+    lig-ptl-brg = temOrigem => ptl;
+    lig-ptl-brg = temDestino => brg;
+    ptl = éOrigemDe => lig-ptl-brg;
+    brg = éDestinoDe => lig-ptl-brg;
+    lig-brg-bcl = iof => Ligação[distância="20"];
+    lig-brg-bcl = temOrigem => brg;
+    lig-brg-bcl = temDestino => bcl;
+    brg = éOrigemDe => lig-brg-bcl;
+    bcl = éDestinoDe => lig-brg-bcl
+} .
