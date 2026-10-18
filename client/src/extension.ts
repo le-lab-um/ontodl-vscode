@@ -15,9 +15,9 @@ import {
 
 let client: LanguageClient;
 
-export function activate(_context: ExtensionContext) {
+export function activate(context: ExtensionContext) {
 	// The server is implemented in node
-	const serverModule = _context.asAbsolutePath(
+	const serverModule = context.asAbsolutePath(
 		path.join('server', 'out', 'server.js')
 	);
 
