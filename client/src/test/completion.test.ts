@@ -20,6 +20,10 @@ suite('Should do completion', () => {
 	});
 });
 
+function isCompletionList(value: unknown): value is vscode.CompletionList {
+	return typeof value === 'object' && value !== null && 'items' in value && Array.isArray(value.items);
+}
+
 async function testCompletion(
 	docUri: vscode.Uri,
 	position: vscode.Position,
@@ -28,11 +32,12 @@ async function testCompletion(
 	await activate(docUri);
 
 	// Executing the command `vscode.executeCompletionItemProvider` to simulate triggering completion
-	const actualCompletionList = (await vscode.commands.executeCommand(
+	const actualCompletionList = await vscode.commands.executeCommand(
 		'vscode.executeCompletionItemProvider',
 		docUri,
 		position
-	)) as vscode.CompletionList;
+	);
+	assert.ok(isCompletionList(actualCompletionList));
 
 	assert.ok(actualCompletionList.items.length >= 2);
 	expectedCompletionList.items.forEach((expectedItem, i) => {

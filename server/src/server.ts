@@ -77,7 +77,7 @@ connection.onInitialize((params: InitializeParams) => {
 connection.onInitialized(() => {
 	if (hasConfigurationCapability) {
 		// Register for all configuration changes.
-		connection.client.register(DidChangeConfigurationNotification.type, undefined);
+		void connection.client.register(DidChangeConfigurationNotification.type, undefined);
 	}
 	if (hasWorkspaceFolderCapability) {
 		connection.workspace.onDidChangeWorkspaceFolders(_event => {
@@ -105,15 +105,29 @@ connection.onDidChangeConfiguration(change => {
 		// Reset all cached document settings
 		documentSettings.clear();
 	} else {
-		globalSettings = (
-			(change.settings.languageServerExample || defaultSettings)
-		);
+		globalSettings = readExampleSettings(change.settings);
 	}
 	// Refresh the diagnostics since the `maxNumberOfProblems` could have changed.
 	// We could optimize things here and re-fetch the setting first can compare it
 	// to the existing setting, but this is out of scope for this example.
 	connection.languages.diagnostics.refresh();
 });
+
+function isExampleSettings(value: unknown): value is ExampleSettings {
+	return typeof value === 'object'
+		&& value !== null
+		&& 'maxNumberOfProblems' in value
+		&& typeof value.maxNumberOfProblems === 'number';
+}
+
+function readExampleSettings(settings: unknown): ExampleSettings {
+	if (typeof settings !== 'object' || settings === null || !('languageServerExample' in settings)) {
+		return defaultSettings;
+	}
+	return isExampleSettings(settings.languageServerExample)
+		? settings.languageServerExample
+		: defaultSettings;
+}
 
 function getDocumentSettings(resource: string): Thenable<ExampleSettings> {
 	if (!hasConfigurationCapability) {
