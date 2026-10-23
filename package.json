@@ -25,12 +25,6 @@
 			"type": "object",
 			"title": "Example configuration",
 			"properties": {
-				"languageServerExample.maxNumberOfProblems": {
-					"scope": "resource",
-					"type": "number",
-					"default": 100,
-					"description": "Controls the maximum number of problems produced by the server."
-				},
 				"languageServerExample.trace.server": {
 					"scope": "window",
 					"type": "string",
@@ -51,8 +45,33 @@
 		"generate": "cd language && npm run generate",
 		"watch": "tsc -b -w",
 		"lint": "eslint",
+		"lint:oxlint": "oxlint .",
+		"knip": "knip",
 		"postinstall": "cd language && npm install && cd ../client && npm install && cd ../server && npm install && cd ..",
-		"test": "sh ./scripts/e2e.sh"
+		"test:language": "cd language && node --test out/test/*.test.js",
+		"test": "npm run test:language && sh ./scripts/e2e.sh"
+	},
+	"knip": {
+		"workspaces": {
+			".": {
+				"entry": ["client/src/test/runTest.ts", "server/src/server.ts"],
+				"project": ["client/src/**/*.ts", "language/src/**/*.ts", "server/src/**/*.ts"]
+			},
+			"client": {
+				"entry": ["src/extension.ts", "src/test/runTest.ts"],
+				"project": ["src/**/*.ts"]
+			},
+			"language": {
+				"entry": ["src/index.ts", "src/test/**/*.ts"],
+				"project": ["src/**/*.ts"],
+				"ignoreDependencies": ["antlr4ng-cli"],
+				"ignoreBinaries": ["java"]
+			},
+			"server": {
+				"entry": ["src/server.ts"],
+				"project": ["src/**/*.ts"]
+			}
+		}
 	},
 	"devDependencies": {
 		"@eslint/js": "^9.13.0",
@@ -60,7 +79,9 @@
 		"@types/mocha": "^10.0.6",
 		"@types/node": "^22",
 		"eslint": "^9.13.0",
+		"knip": "^6.42.1",
 		"mocha": "^10.3.0",
+		"oxlint": "^1.89.0",
 		"typescript": "^5.9.2",
 		"typescript-eslint": "^8.39.0"
 	}
