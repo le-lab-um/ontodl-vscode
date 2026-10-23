@@ -105,12 +105,12 @@ documents.onDidClose(e => {
 });
 
 
-connection.languages.diagnostics.on(async (params) => {
+connection.languages.diagnostics.on((params) => {
 	const document = documents.get(params.textDocument.uri);
 	if (document !== undefined) {
 		return {
 			kind: DocumentDiagnosticReportKind.Full,
-			items: await validateTextDocument(document)
+			items: validateTextDocument(document)
 		} satisfies DocumentDiagnosticReport;
 	} else {
 		// We don't know the document. We can either try to read it from disk
@@ -129,7 +129,7 @@ connection.languages.diagnostics.on(async (params) => {
  * line-and-character positions. Keeping this conversion here prevents the
  * language package from depending on VS Code or the LSP protocol.
  */
-async function validateTextDocument(textDocument: TextDocument): Promise<Diagnostic[]> {
+function validateTextDocument(textDocument: TextDocument): Diagnostic[] {
 	const result = analyze(textDocument.getText());
 
 	return result.diagnostics.map(diagnostic => {
