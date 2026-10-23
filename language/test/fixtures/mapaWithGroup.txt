@@ -1,0 +1,43 @@
+Ontologia mapa
+
+conceitos {
+    Ligação[distância:string],
+    Cidade[descrição:string, distrito:string, nome:string, população:string]
+}
+
+individuos {
+    brg, bcl, ptl, gmr, fml, prt, vct,
+    lig-ptl-bcl, lig-ptl-brg, lig-brg-bcl, lig-brg-gmr, lig-brg-fml, lig-gmr-fml,
+    lig-fml-bcl, lig-fml-prt, lig-bcl-vct, lig-vct-prt, lig-gmr-prt
+}
+
+relacoes {
+    temDestino,
+    temOrigem,
+    éDestinoDe,
+    éOrigemDe
+}
+
+triplos {
+    brg =[ iof => Cidade [descrição="Cidade dos Arcebispos", distrito="Braga", nome="Braga", população="140000"];
+           éDestinoDe => lig-ptl-brg;
+           éOrigemDe => lig-brg-bcl, lig-brg-gmr, lig-brg-fml];
+    bcl =[ iof => Cidade [descrição="Cidade do Galo", distrito="Braga", nome="Barcelos", população="60000"];
+           éOrigemDe => lig-bcl-vct;
+           éDestinoDe => lig-ptl-bcl, lig-fml-bcl, lig-brg-bcl, lig-brg-gmr];
+    ptl =[ iof => Cidade [descrição="Vila mais antiga de Portugal", distrito="Viana do Castelo", nome="Ponte de Lima", população="70000"];
+           éOrigemDe => lig-ptl-bcl, lig-ptl-brg];
+    gmr =[ iof => Cidade [descrição="Cidade berço", distrito="Braga", nome="Guimarães", população="80000"];
+           éOrigemDe => lig-gmr-prt, lig-gmr-fml];
+    fml =[ iof => Cidade [descrição="Princesa do Ave", distrito="Braga", nome="Famalicão", população="90000"];
+           éOrigemDe => lig-fml-prt, lig-fml-bcl;
+           éDestinoDe => lig-brg-fml, lig-gmr-fml];
+    prt =[ iof => Cidade [descrição="Cidade invicta", distrito="Porto", nome="Porto", população="100000"];
+           éDestinoDe => lig-fml-prt, lig-vct-prt, lig-gmr-prt];
+    vct =[ iof => Cidade [descrição="Cidade dos pescadores", distrito="Viana do Castelo", nome="Viana do Castelo", população="60000"];
+           éOrigemDe => lig-vct-prt;
+           éDestinoDe => lig-bcl-vct];
+    lig-ptl-bcl =[ iof => Ligação[distância="19"]; temDestino => bcl; temOrigem => ptl];
+    lig-ptl-brg =[ iof => Ligação[distância="31"]; temOrigem => ptl; temDestino => brg];
+    lig-brg-bcl =[ iof => Ligação[distância="20"]; temOrigem => brg; temDestino => bcl]
+} .

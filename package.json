@@ -25,12 +25,6 @@
 			"type": "object",
 			"title": "Example configuration",
 			"properties": {
-				"languageServerExample.maxNumberOfProblems": {
-					"scope": "resource",
-					"type": "number",
-					"default": 100,
-					"description": "Controls the maximum number of problems produced by the server."
-				},
 				"languageServerExample.trace.server": {
 					"scope": "window",
 					"type": "string",
@@ -40,20 +34,22 @@
 						"verbose"
 					],
 					"default": "off",
-					"description": "Traces the communication between VS Code and the language server."
+					"description": "Traces the communication between the language server and the client."
 				}
 			}
 		}
 	},
 	"scripts": {
 		"vscode:prepublish": "npm run compile",
-		"compile": "tsc -b",
+		"compile": "npm run generate && tsc -b",
+		"generate": "cd language && npm run generate",
 		"watch": "tsc -b -w",
 		"lint": "eslint --max-warnings 0",
 		"lint:oxlint": "oxlint",
 		"knip": "knip",
-		"postinstall": "cd client && npm ci && cd ../server && npm ci && cd ..",
-		"test": "sh ./scripts/e2e.sh"
+		"postinstall": "cd language && npm ci && cd ../client && npm ci && cd ../server && npm ci && cd ..",
+		"test:language": "cd language && node --test out/test/*.test.js",
+		"test": "npm run test:language && sh ./scripts/e2e.sh"
 	},
 	"devDependencies": {
 		"@eslint/js": "^9.13.0",

@@ -1,0 +1,50 @@
+Ontologia ontologyName
+
+%secção de declaração de atributos: opcional
+atributos {
+    attribA: string,
+    attribB: string
+}
+
+%secção de declaração de conceitos: obrigatória
+conceitos {
+    ConcA[attribA, attribC:string],
+    ConcB[attribB],
+    ConcC[attribC: string, attribB],
+    ConcD[attribC: string, attribB],
+    ConcE
+}
+
+%secção de declaração de indivíduos: opcional
+individuos {
+    indA, indB, indC, indD
+}
+
+%secção de declaração de relações: obrigatória
+relacoes {
+    relA[domain: ConcA, codomain: ConcB, props: inversaDe=relE],
+    relB[codomain: ConcD],
+    relC[domain: ConcC],
+    relD[codomain: ConcC, domain: ConcB],
+    relE,
+    relF
+}
+
+%secção de declaração de triplos: obrigatória
+triplos {
+    ConcA = is-a => ConcB;
+    indA =[ iof => ConcA[attribA="string1", attribB="string2", attribC="string3"];
+            relA => indB, indC;
+            relB => indD];
+    indB = iof => ConcB[attribB="string3"];
+    indB = relE => indA;
+    indC = iof => ConcB[attribB="string4"];
+    indD = iof => ConcD;
+    ConcB =[ relD => ConcC];
+    ConcC = relC => ConcB;
+    ConcD = synonym => ConcC
+}
+
+restricoes {
+    A = relF => B :- B\=indB, B==indC; B\=indC, B==indB.
+}.

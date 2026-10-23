@@ -1,6 +1,14 @@
 {
 	"$schema": "https://unpkg.com/knip@6/schema.json",
 	"workspaces": {
+		"language": {
+			"entry": [
+				"src/test/**/*.test.ts"
+			],
+			"project": [
+				"src/**/*.ts"
+			]
+		},
 		"client": {
 			"entry": [
 				"src/extension.ts",
@@ -20,5 +28,11 @@
 				"src/**/*.ts"
 			]
 		}
-	}
+	},
+	"ignoreDependencies": [
+		"antlr4ng-cli"
+	],
+	"ignoreBinaries": [
+		"java"
+	]
 }

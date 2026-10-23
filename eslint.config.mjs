@@ -14,6 +14,7 @@ export default tseslint.config(
 		ignores: [
 			'**/.vscode-test',
 			'**/out',
+			'language/src/generated/**',
 		]
 	},
 	js.configs.recommended,
