@@ -26,7 +26,7 @@ export function run(): Promise<void> {
 			await new Promise<void>((resolve, reject) => {
 				mocha.run(failures => {
 					if (failures > 0) {
-						reject(`${failures} tests failed.`);
+						reject(new Error(`${failures} tests failed.`));
 					} else {
 						resolve();
 					}

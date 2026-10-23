@@ -1,0 +1,38 @@
+{
+	"$schema": "https://unpkg.com/knip@6/schema.json",
+	"workspaces": {
+		"language": {
+			"entry": [
+				"src/test/**/*.test.ts"
+			],
+			"project": [
+				"src/**/*.ts"
+			]
+		},
+		"client": {
+			"entry": [
+				"src/extension.ts",
+				"src/test/runTest.ts",
+				"src/test/index.ts",
+				"src/test/**/*.test.ts"
+			],
+			"project": [
+				"src/**/*.ts"
+			]
+		},
+		"server": {
+			"entry": [
+				"src/server.ts"
+			],
+			"project": [
+				"src/**/*.ts"
+			]
+		}
+	},
+	"ignoreDependencies": [
+		"antlr4ng-cli"
+	],
+	"ignoreBinaries": [
+		"java"
+	]
+}

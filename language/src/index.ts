@@ -32,9 +32,9 @@ class DiagnosticListener extends BaseErrorListener implements ANTLRErrorListener
 		super();
 	}
 
-	public override syntaxError<S extends Token, T extends ATNSimulator>(
+	public override syntaxError<T extends ATNSimulator>(
 		_recognizer: Recognizer<T>,
-		offendingSymbol: S | null,
+		offendingSymbol: Token | null,
 		line: number,
 		column: number,
 		message: string,
