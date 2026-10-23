@@ -50,8 +50,10 @@
 		"compile": "npm run generate && tsc -b",
 		"generate": "cd language && npm run generate",
 		"watch": "tsc -b -w",
-		"lint": "eslint",
-		"postinstall": "cd language && npm install && cd ../client && npm install && cd ../server && npm install && cd ..",
+		"lint": "eslint --max-warnings 0",
+		"lint:oxlint": "oxlint",
+		"knip": "knip",
+		"postinstall": "cd language && npm ci && cd ../client && npm ci && cd ../server && npm ci && cd ..",
 		"test": "sh ./scripts/e2e.sh"
 	},
 	"devDependencies": {
@@ -60,7 +62,11 @@
 		"@types/mocha": "^10.0.6",
 		"@types/node": "^22",
 		"eslint": "^9.13.0",
+		"eslint-plugin-oxlint": "^1.88.0",
+		"knip": "^6.41.0",
 		"mocha": "^10.3.0",
+		"oxlint": "^1.88.0",
+		"oxlint-tsgolint": "^7.0.2004",
 		"typescript": "^5.9.2",
 		"typescript-eslint": "^8.39.0"
 	}
