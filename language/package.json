@@ -7,7 +7,7 @@
 	"scripts": {
 		"generate": "java -jar node_modules/antlr4ng-cli/antlr4-4.13.2-SNAPSHOT-complete.jar -Dlanguage=TypeScript -visitor -listener -Xexact-output-dir -o src/generated grammar/OntoDLPlus.g4",
 		"compile": "npm run generate && tsc -p tsconfig.json",
-		"test": "npm run compile && node --test out/test"
+		"test": "npm run compile && node --test out/test/*.test.js"
 	},
 	"dependencies": {
 		"antlr4ng": "^3.0.16"

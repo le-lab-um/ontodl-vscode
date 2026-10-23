@@ -47,7 +47,8 @@
 	},
 	"scripts": {
 		"vscode:prepublish": "npm run compile",
-		"compile": "tsc -b",
+		"compile": "npm run generate && tsc -b",
+		"generate": "cd language && npm run generate",
 		"watch": "tsc -b -w",
 		"lint": "eslint",
 		"postinstall": "cd language && npm install && cd ../client && npm install && cd ../server && npm install && cd ..",

@@ -9,7 +9,7 @@ header
     ;
 
 attributesSection
-    : attributesKeyword '{' (expandStatement | attributeDeclarationList)* '}'
+    : attributesKeyword '{' (expandStatement+ | expandStatement* attributeDeclarationList expandStatement*) '}'
     ;
 
 attributeDeclarationList
@@ -21,7 +21,7 @@ attributeDeclaration
     ;
 
 conceptsSection
-    : conceptsKeyword '{' (expandStatement | conceptList)* '}'
+    : conceptsKeyword '{' (expandStatement+ | expandStatement* conceptList expandStatement*) '}'
     ;
 
 conceptList
@@ -52,7 +52,7 @@ enumValue
     ;
 
 individualsSection
-    : individualsKeyword '{' (expandStatement | individualList)* '}'
+    : individualsKeyword '{' (expandStatement+ | expandStatement* individualList expandStatement*) '}'
     ;
 
 individualList
@@ -60,7 +60,7 @@ individualList
     ;
 
 relationsSection
-    : relationsKeyword '{' (expandStatement | relationList)* '}'
+    : relationsKeyword '{' (expandStatement+ | expandStatement* relationList expandStatement*) '}'
     ;
 
 relationList
@@ -107,7 +107,7 @@ property
     ;
 
 triplesSection
-    : triplesKeyword '{' (expandStatement | tripleList)* '}'
+    : triplesKeyword '{' (expandStatement+ | expandStatement* tripleList expandStatement*) '}'
     ;
 
 tripleList
@@ -165,14 +165,22 @@ constraintConjunction
 
 constraintPrimitive
     : '(' constraintBody ')'
-    | negationKeyword '(' constraintBody ')'
+    | negationKeyword ('(' constraintBody ')' | constraintAtom)
     | constraintAtom
     ;
 
 constraintAtom
-    : IDENTIFIER '=' IDENTIFIER '=>' IDENTIFIER
+    : IDENTIFIER '=' constraintRelation '=>' IDENTIFIER
     | IDENTIFIER '==' atom
     | IDENTIFIER '\\=' atom
+    ;
+
+constraintRelation
+    : iofKeyword
+    | pofKeyword
+    | isaKeyword
+    | synonymKeyword
+    | IDENTIFIER
     ;
 
 expandStatement

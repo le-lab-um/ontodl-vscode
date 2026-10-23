@@ -46,6 +46,47 @@ triplos { expand extra/triples.odlp; x = iof => C }
 		assert.deepEqual(analyze(source).diagnostics, []);
 	});
 
+	test('requires separators between declarations and triples', () => {
+		const sources = [
+			`Ontology demo atributos { value: int other: string } conceitos { C } relacoes { r } triplos { x = iof => C } .`,
+			`Ontology demo conceitos { Cidade Ligação } relacoes { r } triplos { x = iof => C } .`,
+			`Ontology demo conceitos { C } individuos { x y } relacoes { r } triplos { x = iof => C } .`,
+			`Ontology demo conceitos { C } relacoes { r s } triplos { x = iof => C } .`,
+			`Ontology demo conceitos { C } relacoes { r } triplos { x = iof => C y = iof => C } .`
+		];
+
+		for (const source of sources) {
+			assert.ok(analyze(source).diagnostics.length > 0, source);
+		}
+	});
+
+	test('rejects empty section bodies', () => {
+		const sources = [
+			'Ontology demo atributos { } conceitos { C } relacoes { r } triplos { x = iof => C } .',
+			'Ontology demo conceitos { } relacoes { r } triplos { x = iof => C } .',
+			'Ontology demo conceitos { C } individuos { } relacoes { r } triplos { x = iof => C } .',
+			'Ontology demo conceitos { C } relacoes { } triplos { x = iof => C } .',
+			'Ontology demo conceitos { C } relacoes { r } triplos { } .',
+			'Ontology demo conceitos { C } relacoes { r } triplos { x = iof => C } restricoes { } .'
+		];
+
+		for (const source of sources) {
+			assert.ok(analyze(source).diagnostics.length > 0, source);
+		}
+	});
+
+	test('accepts restriction relation aliases and unparenthesized negation', () => {
+		const source = `Ontology demo
+conceitos { B, C }
+relacoes { r }
+triplos { B = r => C }
+restricoes {
+	B = r => C :- not B == C, ! B = is-a => C, nao B = iof => C, B = pof => C, B = synonym => C.
+} .`;
+
+		assert.deepEqual(analyze(source).diagnostics, []);
+	});
+
 	test('reports offsets for slash comments', () => {
 		const source = 'Ontology demo // not a comment\nconceitos { C } relacoes { r } triplos { x = iof => C } .';
 		const diagnostics = analyze(source).diagnostics;
