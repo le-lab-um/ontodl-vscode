@@ -30,6 +30,19 @@ e boas práticas em Pull Requests.
 	a estar em conformidade com o uso responsável de Inteligência Artifical
 	segundo a Universidade do Minho.
 
+## Git hooks
+
+- O `npm ci` instala hooks ([lefthook](https://lefthook.dev), ver `lefthook.yml`) que validam
+	localmente o que a CI e esta política exigem:
+	- `pre-commit`: oxlint e ESLint com `--fix` nos ficheiros staged, actionlint nos workflows
+		e bloqueio de commits na `main`;
+	- `commit-msg`: formato `prefixo: mensagem` e trailer `AI-assisted`;
+	- `pre-push`: nome da branch, bloqueio de push para a `main`, compile, ESLint, oxlint, knip,
+		actionlint e testes da linguagem;
+	- `post-merge`/`post-checkout`: `npm ci` quando um `package-lock.json` muda.
+- Os testes e2e da extensão correm com `npx lefthook run e2e`.
+- Em caso de necessidade, `LEFTHOOK=0` ou `--no-verify` ignoram os hooks.
+
 ## Pull Requests
 
 - Atualizar a branch com a main e resolver conflitos antes de pedir review
