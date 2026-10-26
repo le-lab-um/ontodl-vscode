@@ -25,7 +25,7 @@ import {
 } from 'antlr4ng';
 
 import { OntoDLPlusLexer } from './generated/OntoDLPlusLexer.js';
-import { ConceptContext, OntoDLPlusParser, RelationContext } from './generated/OntoDLPlusParser.js';
+import { ConceptContext, IndividualListContext, OntoDLPlusParser, RelationContext } from './generated/OntoDLPlusParser.js';
 import { OntoDLPlusListener } from './generated/OntoDLPlusListener.js';
 
 class DiagnosticSem extends OntoDLPlusListener {
@@ -33,6 +33,7 @@ class DiagnosticSem extends OntoDLPlusListener {
 
 	public readonly concepts = new Set<string>();
 	public readonly relations = new Set<string>();
+	public readonly individualLists = new Set<string>();
 
 	public constructor(private readonly source: string) {
 		super();
@@ -45,6 +46,23 @@ class DiagnosticSem extends OntoDLPlusListener {
 	public override enterRelation = (ctx: RelationContext): void => {
 		//console.log(ctx.IDENTIFIER().getText());
 		this.relations.add(ctx.IDENTIFIER().getText());
+	};
+
+	public override enterIndividualList = (ctx: IndividualListContext): void => {
+		for (const id of ctx.IDENTIFIER()){
+			//console.log(id.getText());
+			if (!this.individualLists.has(id.getText())) {
+				this.individualLists.add(id.getText());
+			}
+			else {
+				this.diagnostics.push({
+					severity: 'warning',
+					start: id.getSymbol().start,
+					end: id.getSymbol().stop + 1,
+					message: `${id.getText()} declared more than once`
+				});
+			}
+		}
 	};
 }
 
