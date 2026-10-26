@@ -25,13 +25,14 @@ import {
 } from 'antlr4ng';
 
 import { OntoDLPlusLexer } from './generated/OntoDLPlusLexer.js';
-import { ConceptContext, OntoDLPlusParser } from './generated/OntoDLPlusParser.js';
+import { ConceptContext, OntoDLPlusParser, RelationContext } from './generated/OntoDLPlusParser.js';
 import { OntoDLPlusListener } from './generated/OntoDLPlusListener.js';
 
 class DiagnosticSem extends OntoDLPlusListener {
 	public readonly diagnostics: LanguageDiagnostic[] = [];
 
 	public readonly concepts = new Set<string>();
+	public readonly relations = new Set<string>();
 
 	public constructor(private readonly source: string) {
 		super();
@@ -39,6 +40,11 @@ class DiagnosticSem extends OntoDLPlusListener {
 
 	public override enterConcept = (ctx: ConceptContext): void => {
 		this.concepts.add(ctx.IDENTIFIER().getText());
+	};
+
+	public override enterRelation = (ctx: RelationContext): void => {
+		//console.log(ctx.IDENTIFIER().getText());
+		this.relations.add(ctx.IDENTIFIER().getText());
 	};
 }
 
