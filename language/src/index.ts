@@ -9,6 +9,7 @@ export interface LanguageDiagnostic {
 
 export interface AnalysisResult {
 	diagnostics: LanguageDiagnostic[];
+	semanticDiagnostics: LanguageDiagnostic[];
 }
 
 import {
@@ -17,6 +18,7 @@ import {
 	BaseErrorListener,
 	CharStream,
 	CommonTokenStream,
+	ParseTreeWalker,
 	RecognitionException,
 	Recognizer,
 	Token
@@ -24,6 +26,15 @@ import {
 
 import { OntoDLPlusLexer } from './generated/OntoDLPlusLexer.js';
 import { OntoDLPlusParser } from './generated/OntoDLPlusParser.js';
+import { OntoDLPlusListener } from './generated/OntoDLPlusListener.js';
+
+class DiagnosticSem extends OntoDLPlusListener {
+	public readonly diagnostics: LanguageDiagnostic[] = [];
+
+	public constructor(private readonly source: string) {
+		super();
+	}
+}
 
 class DiagnosticListener extends BaseErrorListener implements ANTLRErrorListener {
 	public readonly diagnostics: LanguageDiagnostic[] = [];
@@ -84,7 +95,12 @@ export function analyze(source: string): AnalysisResult {
 	const parser = new OntoDLPlusParser(tokens);
 	parser.removeErrorListeners();
 	parser.addErrorListener(listener);
-	parser.ontology();
+	const tree = parser.ontology();
 
-	return { diagnostics: listener.diagnostics };
+	const pw = new ParseTreeWalker();
+	const ontoListener = new DiagnosticSem(source);
+
+	pw.walk(ontoListener, tree);
+
+	return { diagnostics: listener.diagnostics, semanticDiagnostics: ontoListener.diagnostics};
 }
