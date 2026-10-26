@@ -6,6 +6,8 @@
 **/tsconfig.base.json
 contributing.md
 .travis.yml
+lefthook.yml
+scripts/**
 client/node_modules/**
 !client/node_modules/vscode-jsonrpc/**
 !client/node_modules/vscode-languageclient/**

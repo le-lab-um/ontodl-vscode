@@ -1,0 +1,76 @@
+# Local mirror of .github/workflows/ci.yml and the policy in CONTRIBUTING.md.
+# Skip once with `LEFTHOOK=0 git ...` or `git ... --no-verify`.
+# Run a hook manually with `npx lefthook run <hook> --force` (e.g. `npx lefthook run pre-push --force`).
+# Extension e2e tests are opt-in: `npx lefthook run e2e`.
+
+glob_matcher: doublestar
+
+pre-commit:
+  parallel: true
+  jobs:
+    - name: no commits on main
+      run: sh scripts/hooks/protect-main.sh
+
+    - name: lint and fix staged files
+      glob: "**/*.{ts,mjs,js}"
+      exclude:
+        - "**/out/**"
+        - "language/src/generated/**"
+      group:
+        piped: true
+        jobs:
+          - name: oxlint
+            run: npx oxlint --fix {staged_files}
+            stage_fixed: true
+          - name: eslint
+            run: npx eslint --max-warnings 0 --no-warn-ignored --fix {staged_files}
+            stage_fixed: true
+
+    - name: actionlint
+      glob: ".github/workflows/*.{yml,yaml}"
+      run: sh scripts/hooks/actionlint.sh {staged_files}
+
+commit-msg:
+  jobs:
+    - name: commit message format
+      run: sh scripts/hooks/check-commit-msg.sh {1}
+
+pre-push:
+  jobs:
+    - name: branch policy
+      run: sh scripts/hooks/check-push-refs.sh
+      use_stdin: true
+
+    - name: compile
+      run: npm run -s compile
+
+    - name: checks
+      group:
+        parallel: true
+        jobs:
+          - name: eslint
+            run: npm run -s lint
+          - name: oxlint
+            run: npm run -s lint:oxlint
+          - name: knip
+            run: npm run -s knip
+          - name: actionlint
+            run: sh scripts/hooks/actionlint.sh
+          - name: language tests
+            run: npm run -s test:language
+
+post-merge:
+  jobs:
+    - name: sync dependencies
+      run: sh scripts/hooks/sync-deps.sh ORIG_HEAD HEAD
+
+post-checkout:
+  jobs:
+    - name: sync dependencies
+      run: sh scripts/hooks/sync-deps.sh {1} {2} {3}
+
+# Opens a VS Code window and needs a VS Code download, so it is not part of pre-push.
+e2e:
+  jobs:
+    - name: extension e2e tests
+      run: sh scripts/e2e.sh
