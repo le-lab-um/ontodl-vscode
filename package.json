@@ -17,7 +17,7 @@
 		"vscode": "^1.100.0"
 	},
 	"activationEvents": [
-		"onLanguage:plaintext"
+		"onLanguage:ontodlp"
 	],
 	"main": "./client/out/extension",
 	"contributes": {
@@ -37,7 +37,26 @@
 					"description": "Traces the communication between the language server and the client."
 				}
 			}
-		}
+		},
+		"languages": [
+			{
+				"id": "ontodlp",
+				"aliases": [
+					"OntoDL+",
+					"OntoDL"
+				],
+				"extensions": [
+					".odlp"
+				]
+			}
+		],
+		"grammars": [
+			{
+				"language": "ontodlp",
+				"scopeName": "source.ontodlp",
+				"path": "./syntaxes/ontodlp.tmLanguage.json"
+			}
+		]
 	},
 	"scripts": {
 		"vscode:prepublish": "npm run compile",
