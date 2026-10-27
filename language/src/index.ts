@@ -9,6 +9,7 @@ export interface LanguageDiagnostic {
 
 export interface AnalysisResult {
 	diagnostics: LanguageDiagnostic[];
+	semanticDiagnostics: LanguageDiagnostic[];
 }
 
 import {
@@ -17,13 +18,53 @@ import {
 	BaseErrorListener,
 	CharStream,
 	CommonTokenStream,
+	ParseTreeWalker,
 	RecognitionException,
 	Recognizer,
 	Token
 } from 'antlr4ng';
 
 import { OntoDLPlusLexer } from './generated/OntoDLPlusLexer.js';
-import { OntoDLPlusParser } from './generated/OntoDLPlusParser.js';
+import { ConceptContext, IndividualListContext, OntoDLPlusParser, RelationContext } from './generated/OntoDLPlusParser.js';
+import { OntoDLPlusListener } from './generated/OntoDLPlusListener.js';
+
+class DiagnosticSem extends OntoDLPlusListener {
+	public readonly diagnostics: LanguageDiagnostic[] = [];
+
+	public readonly concepts = new Set<string>();
+	public readonly relations = new Set<string>();
+	public readonly individualLists = new Set<string>();
+
+	public constructor(private readonly source: string) {
+		super();
+	}
+
+	public override enterConcept = (ctx: ConceptContext): void => {
+		this.concepts.add(ctx.IDENTIFIER().getText());
+	};
+
+	public override enterRelation = (ctx: RelationContext): void => {
+		//console.log(ctx.IDENTIFIER().getText());
+		this.relations.add(ctx.IDENTIFIER().getText());
+	};
+
+	public override enterIndividualList = (ctx: IndividualListContext): void => {
+		for (const id of ctx.IDENTIFIER()){
+			//console.log(id.getText());
+			if (!this.individualLists.has(id.getText())) {
+				this.individualLists.add(id.getText());
+			}
+			else {
+				this.diagnostics.push({
+					severity: 'warning',
+					start: id.getSymbol().start,
+					end: id.getSymbol().stop + 1,
+					message: `${id.getText()} declared more than once`
+				});
+			}
+		}
+	};
+}
 
 class DiagnosticListener extends BaseErrorListener implements ANTLRErrorListener {
 	public readonly diagnostics: LanguageDiagnostic[] = [];
@@ -84,7 +125,12 @@ export function analyze(source: string): AnalysisResult {
 	const parser = new OntoDLPlusParser(tokens);
 	parser.removeErrorListeners();
 	parser.addErrorListener(listener);
-	parser.ontology();
+	const tree = parser.ontology();
 
-	return { diagnostics: listener.diagnostics };
+	const pw = new ParseTreeWalker();
+	const ontoListener = new DiagnosticSem(source);
+
+	pw.walk(ontoListener, tree);
+
+	return { diagnostics: listener.diagnostics, semanticDiagnostics: ontoListener.diagnostics};
 }

@@ -96,7 +96,9 @@ connection.languages.diagnostics.on((params) => {
 function validateTextDocument(textDocument: TextDocument): Diagnostic[] {
 	const result = analyze(textDocument.getText());
 
-	return result.diagnostics.map(diagnostic => {
+	const allDiagnostics = result.diagnostics.concat(result.semanticDiagnostics);
+
+	return allDiagnostics.map(diagnostic => {
 		const lspDiagnostic: Diagnostic = {
 			severity: diagnostic.severity === 'error'
 				? DiagnosticSeverity.Error
