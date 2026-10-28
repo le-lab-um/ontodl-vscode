@@ -1,7 +1,8 @@
-/* --------------------------------------------------------------------------------------------
+/* -----------------------------------------------------------------------------
  * Copyright (c) Microsoft Corporation. All rights reserved.
- * Licensed under the MIT License. See License.txt in the project root for license information.
- * ------------------------------------------------------------------------------------------ */
+ * Licensed under the MIT License. See License.txt in the project root for
+ * license information.
+ * -------------------------------------------------------------------------- */
 
 import * as vscode from 'vscode';
 import * as assert from 'assert';
@@ -21,7 +22,10 @@ suite('Should do completion', () => {
 });
 
 function isCompletionList(value: unknown): value is vscode.CompletionList {
-	return typeof value === 'object' && value !== null && 'items' in value && Array.isArray(value.items);
+	return typeof value === 'object'
+		&& value !== null
+		&& 'items' in value
+		&& Array.isArray(value.items);
 }
 
 async function testCompletion(
@@ -31,7 +35,8 @@ async function testCompletion(
 ) {
 	await activate(docUri);
 
-	// Executing the command `vscode.executeCompletionItemProvider` to simulate triggering completion
+	// Executing the command `vscode.executeCompletionItemProvider` to simulate
+	// triggering completion
 	const actualCompletionList = await vscode.commands.executeCommand(
 		'vscode.executeCompletionItemProvider',
 		docUri,
