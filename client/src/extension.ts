@@ -1,7 +1,8 @@
-/* --------------------------------------------------------------------------------------------
+/* -----------------------------------------------------------------------------
  * Copyright (c) Microsoft Corporation. All rights reserved.
- * Licensed under the MIT License. See License.txt in the project root for license information.
- * ------------------------------------------------------------------------------------------ */
+ * Licensed under the MIT License. See License.txt in the project root for
+ * license information.
+ * -------------------------------------------------------------------------- */
 
 import * as path from 'path';
 import { workspace, ExtensionContext } from 'vscode';
@@ -21,13 +22,13 @@ export function activate(context: ExtensionContext) {
 		path.join('server', 'out', 'server.js')
 	);
 
-	// If the extension is launched in debug mode then the debug server options are used
-	// Otherwise the run options are used
+	// If the extension is launched in debug mode then the debug server options
+	// are used. Otherwise the run options are used
 	const serverOptions: ServerOptions = {
 		run: { module: serverModule, transport: TransportKind.ipc },
 		debug: {
 			module: serverModule,
-			transport: TransportKind.ipc,
+			transport: TransportKind.ipc
 		}
 	};
 
@@ -36,7 +37,8 @@ export function activate(context: ExtensionContext) {
 		// Register the server for plain text documents
 		documentSelector: [{ scheme: 'file', language: 'plaintext' }],
 		synchronize: {
-			// Notify the server about file changes to '.clientrc files contained in the workspace
+			// Notify the server about file changes to '.clientrc files
+			// contained in the workspace
 			fileEvents: workspace.createFileSystemWatcher('**/.clientrc')
 		}
 	};

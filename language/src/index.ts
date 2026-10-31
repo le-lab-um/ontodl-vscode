@@ -25,7 +25,12 @@ import {
 } from 'antlr4ng';
 
 import { OntoDLPlusLexer } from './generated/OntoDLPlusLexer.js';
-import { ConceptContext, IndividualListContext, OntoDLPlusParser, RelationContext } from './generated/OntoDLPlusParser.js';
+import {
+	ConceptContext,
+	IndividualListContext,
+	OntoDLPlusParser,
+	RelationContext
+} from './generated/OntoDLPlusParser.js';
 import { OntoDLPlusListener } from './generated/OntoDLPlusListener.js';
 
 class DiagnosticSem extends OntoDLPlusListener {
@@ -44,17 +49,18 @@ class DiagnosticSem extends OntoDLPlusListener {
 	};
 
 	public override enterRelation = (ctx: RelationContext): void => {
-		//console.log(ctx.IDENTIFIER().getText());
+		// console.log(ctx.IDENTIFIER().getText());
 		this.relations.add(ctx.IDENTIFIER().getText());
 	};
 
-	public override enterIndividualList = (ctx: IndividualListContext): void => {
-		for (const id of ctx.IDENTIFIER()){
-			//console.log(id.getText());
+	public override enterIndividualList = (
+		ctx: IndividualListContext
+	): void => {
+		for (const id of ctx.IDENTIFIER()) {
+			// console.log(id.getText());
 			if (!this.individualLists.has(id.getText())) {
 				this.individualLists.add(id.getText());
-			}
-			else {
+			} else {
 				this.diagnostics.push({
 					severity: 'warning',
 					start: id.getSymbol().start,
@@ -66,7 +72,9 @@ class DiagnosticSem extends OntoDLPlusListener {
 	};
 }
 
-class DiagnosticListener extends BaseErrorListener implements ANTLRErrorListener {
+class DiagnosticListener
+	extends BaseErrorListener
+	implements ANTLRErrorListener {
 	public readonly diagnostics: LanguageDiagnostic[] = [];
 
 	public constructor(private readonly source: string) {
@@ -132,5 +140,8 @@ export function analyze(source: string): AnalysisResult {
 
 	pw.walk(ontoListener, tree);
 
-	return { diagnostics: listener.diagnostics, semanticDiagnostics: ontoListener.diagnostics};
+	return {
+		diagnostics: listener.diagnostics,
+		semanticDiagnostics: ontoListener.diagnostics
+	};
 }

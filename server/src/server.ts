@@ -1,7 +1,8 @@
-/* --------------------------------------------------------------------------------------------
+/* -----------------------------------------------------------------------------
  * Copyright (c) Microsoft Corporation. All rights reserved.
- * Licensed under the MIT License. See License.txt in the project root for license information.
- * ------------------------------------------------------------------------------------------ */
+ * Licensed under the MIT License. See License.txt in the project root for
+ * license information.
+ * -------------------------------------------------------------------------- */
 import {
 	createConnection,
 	TextDocuments,
@@ -68,7 +69,6 @@ connection.onInitialized(() => {
 	}
 });
 
-
 connection.languages.diagnostics.on((params) => {
 	const document = documents.get(params.textDocument.uri);
 	if (document !== undefined) {
@@ -96,9 +96,11 @@ connection.languages.diagnostics.on((params) => {
 function validateTextDocument(textDocument: TextDocument): Diagnostic[] {
 	const result = analyze(textDocument.getText());
 
-	const allDiagnostics = result.diagnostics.concat(result.semanticDiagnostics);
+	const allDiagnostics = result.diagnostics.concat(
+		result.semanticDiagnostics
+	);
 
-	return allDiagnostics.map(diagnostic => {
+	return allDiagnostics.map((diagnostic) => {
 		const lspDiagnostic: Diagnostic = {
 			severity: diagnostic.severity === 'error'
 				? DiagnosticSeverity.Error
