@@ -18,10 +18,14 @@ import {
 	Hover,
 	InitializeParams,
 	InitializeResult,
+	ErrorCodes,
+	Location,
 	MarkupKind,
 	ProposedFeatures,
+	ResponseError,
 	SymbolKind,
 	TextDocumentSyncKind,
+	WorkspaceEdit,
 	type DocumentDiagnosticReport,
 	type Position
 } from 'vscode-languageserver/node';
@@ -35,6 +39,8 @@ import {
 	describe,
 	emptySymbolTable,
 	outline,
+	references,
+	renameRejection,
 	symbolAt,
 	type CompletionEntry,
 	type OutlineKind,
@@ -67,6 +73,10 @@ connection.onInitialize((params: InitializeParams) => {
 			documentSymbolProvider: true,
 			foldingRangeProvider: true,
 			hoverProvider: true,
+			referencesProvider: true,
+			renameProvider: {
+				prepareProvider: true
+			},
 			diagnosticProvider: {
 				interFileDependencies: false,
 				workspaceDiagnostics: false
@@ -187,6 +197,61 @@ connection.onDefinition((params): Definition | null => {
 			found.symbol.start,
 			found.symbol.end
 		)
+	};
+});
+
+connection.onReferences((params): Location[] | null => {
+	const document = documents.get(params.textDocument.uri);
+	if (!document) {
+		return null;
+	}
+	const spans = references(
+		analyze(document.getText()).symbols,
+		document.offsetAt(params.position),
+		params.context.includeDeclaration
+	);
+	if (!spans) {
+		return null;
+	}
+	return spans.map(span => ({
+		uri: document.uri,
+		range: rangeOf(document, span.start, span.end)
+	}));
+});
+
+connection.onPrepareRename((params) => {
+	const found = locate(params.textDocument.uri, params.position);
+	if (!found) {
+		return null;
+	}
+	return {
+		range: rangeOf(found.document, found.start, found.end),
+		placeholder: found.symbol.name
+	};
+});
+
+connection.onRenameRequest((params): WorkspaceEdit => {
+	const document = documents.get(params.textDocument.uri);
+	if (!document) {
+		throw new ResponseError(
+			ErrorCodes.InvalidRequest,
+			'Document is not open'
+		);
+	}
+	const table = analyze(document.getText()).symbols;
+	const offset = document.offsetAt(params.position);
+	const problem = renameRejection(table, offset, params.newName);
+	if (problem) {
+		throw new ResponseError(ErrorCodes.InvalidParams, problem);
+	}
+	const spans = references(table, offset, true) ?? [];
+	return {
+		changes: {
+			[document.uri]: spans.map(span => ({
+				range: rangeOf(document, span.start, span.end),
+				newText: params.newName
+			}))
+		}
 	};
 });
 
