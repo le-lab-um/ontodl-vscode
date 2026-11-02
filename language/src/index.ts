@@ -21,12 +21,34 @@ import {
 	ParseTreeWalker,
 	RecognitionException,
 	Recognizer,
+	TerminalNode,
 	Token
 } from 'antlr4ng';
 
 import { OntoDLPlusLexer } from './generated/OntoDLPlusLexer.js';
-import { ConceptContext, IndividualListContext, OntoDLPlusParser, RelationContext } from './generated/OntoDLPlusParser.js';
+import {
+	AttributeDeclarationContext,
+	AttributeInstanceContext,
+	AttributeReferenceContext,
+	AtomContext,
+	ConceptContext,
+	GroupedObjectContext,
+	IndividualListContext,
+	OntoDLPlusParser,
+	PropertyContext,
+	RelationContext,
+	RelationInformationContext,
+	RelationshipContext,
+	TripleContext,
+	TripleRelationContext,
+	TypeContext
+} from './generated/OntoDLPlusParser.js';
 import { OntoDLPlusListener } from './generated/OntoDLPlusListener.js';
+
+type AttributeType =
+	| { kind: 'string' }
+	| { kind: 'int' }
+	| { kind: 'enum'; values: string[] };
 
 class DiagnosticSem extends OntoDLPlusListener {
 	public readonly diagnostics: LanguageDiagnostic[] = [];
@@ -34,36 +56,211 @@ class DiagnosticSem extends OntoDLPlusListener {
 	public readonly concepts = new Set<string>();
 	public readonly relations = new Set<string>();
 	public readonly individualLists = new Set<string>();
+	public readonly attributes = new Set<string>();
 
-	public constructor(private readonly source: string) {
-		super();
-	}
+	private readonly attributeTypes = new Map<string, AttributeType>();
+	private readonly pendingInverses: TerminalNode[] = [];
 
 	public override enterConcept = (ctx: ConceptContext): void => {
-		this.concepts.add(ctx.IDENTIFIER().getText());
+		this.declare(this.concepts, ctx.IDENTIFIER());
 	};
 
 	public override enterRelation = (ctx: RelationContext): void => {
-		//console.log(ctx.IDENTIFIER().getText());
-		this.relations.add(ctx.IDENTIFIER().getText());
+		this.declare(this.relations, ctx.IDENTIFIER());
 	};
 
-	public override enterIndividualList = (ctx: IndividualListContext): void => {
-		for (const id of ctx.IDENTIFIER()){
-			//console.log(id.getText());
-			if (!this.individualLists.has(id.getText())) {
-				this.individualLists.add(id.getText());
+	public override enterIndividualList = (
+		ctx: IndividualListContext
+	): void => {
+		for (const id of ctx.IDENTIFIER()) {
+			this.declare(this.individualLists, id);
+		}
+	};
+
+	public override enterAttributeDeclaration = (
+		ctx: AttributeDeclarationContext
+	): void => {
+		const id = ctx.IDENTIFIER();
+		if (!this.declare(this.attributes, id)) {
+			return;
+		}
+		this.attributeTypes.set(id.getText(), this.readType(ctx.type()));
+	};
+
+	public override enterAttributeReference = (
+		ctx: AttributeReferenceContext
+	): void => {
+		const id = ctx.IDENTIFIER();
+		const typeNode = ctx.type();
+		if (!typeNode) {
+			if (!this.attributes.has(id.getText())) {
+				this.report('warning', id, `${id.getText()} not declared`);
 			}
-			else {
-				this.diagnostics.push({
-					severity: 'warning',
-					start: id.getSymbol().start,
-					end: id.getSymbol().stop + 1,
-					message: `${id.getText()} declared more than once`
-				});
+			return;
+		}
+
+		const type = this.readType(typeNode);
+		const previous = this.attributeTypes.get(id.getText());
+		if (!previous) {
+			this.attributes.add(id.getText());
+			this.attributeTypes.set(id.getText(), type);
+			return;
+		}
+		if (!this.sameType(previous, type)) {
+			this.report(
+				'warning',
+				id,
+				`${id.getText()} type does not match previous declaration`
+			);
+		}
+	};
+
+	public override enterRelationInformation = (
+		ctx: RelationInformationContext
+	): void => {
+		const id = ctx.IDENTIFIER();
+		const isEndpoint = ctx.domainKeyword() ?? ctx.counterdomainKeyword();
+		if (isEndpoint && id && !this.concepts.has(id.getText())) {
+			this.report('warning', id, `${id.getText()} is not a concept`);
+		}
+	};
+
+	public override enterProperty = (ctx: PropertyContext): void => {
+		const id = ctx.IDENTIFIER();
+		if (ctx.inverseKeyword() && id) {
+			this.pendingInverses.push(id);
+		}
+	};
+
+	public override exitRelationsSection = (): void => {
+		for (const id of this.pendingInverses) {
+			if (!this.relations.has(id.getText())) {
+				this.report(
+					'warning',
+					id,
+					`${id.getText()} is not a relation`
+				);
 			}
 		}
 	};
+
+	public override enterTriple = (ctx: TripleContext): void => {
+		for (const id of ctx.IDENTIFIER()) {
+			this.checkEntity(id);
+		}
+	};
+
+	public override enterTripleRelation = (
+		ctx: TripleRelationContext
+	): void => {
+		const id = ctx.IDENTIFIER();
+		if (id && !this.relations.has(id.getText())) {
+			this.report('warning', id, `${id.getText()} not declared`);
+		}
+	};
+
+	public override enterRelationship = (ctx: RelationshipContext): void => {
+		this.checkEntity(ctx.IDENTIFIER());
+	};
+
+	public override enterGroupedObject = (ctx: GroupedObjectContext): void => {
+		this.checkEntity(ctx.IDENTIFIER());
+	};
+
+	public override enterAttributeInstance = (
+		ctx: AttributeInstanceContext
+	): void => {
+		const id = ctx.IDENTIFIER();
+		const name = id.getText();
+		if (!this.attributes.has(name)) {
+			this.report('warning', id, `${name} not declared`);
+			return;
+		}
+
+		const type = this.attributeTypes.get(name);
+		const token = this.atomToken(ctx.atom());
+		if (!type || !token || this.valueMatches(type, ctx.atom())) {
+			return;
+		}
+		this.report(
+			'warning',
+			token,
+			`${name} value does not match its type`
+		);
+	};
+
+	private checkEntity(id: TerminalNode): void {
+		if (!this.isDeclaredEntity(id)) {
+			this.report('warning', id, `${id.getText()} not declared`);
+		}
+	}
+
+	private isDeclaredEntity(id: TerminalNode): boolean {
+		return this.individualLists.has(id.getText())
+			|| this.concepts.has(id.getText());
+	}
+
+	private declare(names: Set<string>, id: TerminalNode): boolean {
+		const name = id.getText();
+		if (names.has(name)) {
+			this.report('warning', id, `${name} declared more than once`);
+			return false;
+		}
+		names.add(name);
+		return true;
+	}
+
+	private readType(ctx: TypeContext): AttributeType {
+		const values = ctx.enumValue();
+		if (values.length > 0) {
+			return {
+				kind: 'enum',
+				values: values.map(value => value.getText())
+			};
+		}
+		if (ctx.getText() === 'int') {
+			return { kind: 'int' };
+		}
+		return { kind: 'string' };
+	}
+
+	private sameType(left: AttributeType, right: AttributeType): boolean {
+		if (left.kind === 'enum' && right.kind === 'enum') {
+			return left.values.length === right.values.length
+				&& left.values.every(
+					(value, index) => value === right.values[index]
+				);
+		}
+		return left.kind === right.kind;
+	}
+
+	private valueMatches(type: AttributeType, atom: AtomContext): boolean {
+		if (type.kind === 'string') {
+			return atom.STRING() !== null;
+		}
+		if (type.kind === 'int') {
+			return atom.NUMBER() !== null;
+		}
+		const token = atom.IDENTIFIER() ?? atom.NUMBER();
+		return token !== null && type.values.includes(token.getText());
+	}
+
+	private atomToken(atom: AtomContext): TerminalNode | null {
+		return atom.STRING() ?? atom.NUMBER() ?? atom.IDENTIFIER();
+	}
+
+	private report(
+		severity: DiagnosticSeverity,
+		id: TerminalNode,
+		message: string
+	): void {
+		this.diagnostics.push({
+			severity,
+			start: id.getSymbol().start,
+			end: id.getSymbol().stop + 1,
+			message
+		});
+	}
 }
 
 class DiagnosticListener extends BaseErrorListener implements ANTLRErrorListener {
@@ -128,9 +325,13 @@ export function analyze(source: string): AnalysisResult {
 	const tree = parser.ontology();
 
 	const pw = new ParseTreeWalker();
-	const ontoListener = new DiagnosticSem(source);
+	const ontoListener = new DiagnosticSem();
 
 	pw.walk(ontoListener, tree);
+	ontoListener.diagnostics.sort((left, right) => left.start - right.start);
 
-	return { diagnostics: listener.diagnostics, semanticDiagnostics: ontoListener.diagnostics};
+	return {
+		diagnostics: listener.diagnostics,
+		semanticDiagnostics: ontoListener.diagnostics
+	};
 }
