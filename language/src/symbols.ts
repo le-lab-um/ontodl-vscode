@@ -249,6 +249,53 @@ export function symbolAt(
 	return { symbol, start: use.start, end: use.end };
 }
 
+export function references(
+	table: SymbolTable,
+	offset: number,
+	includeDeclaration = true
+): SourceSpan[] | undefined {
+	const hit = symbolAt(table, offset);
+	if (!hit) {
+		return undefined;
+	}
+	const spans: SourceSpan[] = [];
+	if (includeDeclaration) {
+		spans.push({ start: hit.symbol.start, end: hit.symbol.end });
+	}
+	for (const use of table.uses) {
+		if (resolve(table, use.name, use.kind) === hit.symbol) {
+			spans.push({ start: use.start, end: use.end });
+		}
+	}
+	return spans.toSorted(byStart);
+}
+
+export function renameRejection(
+	table: SymbolTable,
+	offset: number,
+	newName: string
+): string | undefined {
+	const hit = symbolAt(table, offset);
+	if (!hit) {
+		return 'Name cannot be renamed';
+	}
+	if (!IDENTIFIER.test(newName)) {
+		return 'Name must be an identifier';
+	}
+	if (KEYWORDS.includes(newName)) {
+		return `${newName} is a keyword`;
+	}
+	const taken = newName !== hit.symbol.name
+		&& declarations(table).some(item => item.name === newName);
+	if (taken) {
+		return `${newName} is already declared`;
+	}
+	return undefined;
+}
+
+const IDENTIFIER
+	= /^[A-Za-z\u00C0-\u024F][A-Za-z0-9_/\u00C0-\u024F-]*$/u;
+
 export function completions(table: SymbolTable): CompletionEntry[] {
 	const entries: CompletionEntry[] = KEYWORDS.map(label => ({
 		label,

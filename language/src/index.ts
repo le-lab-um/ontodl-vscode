@@ -39,6 +39,8 @@ export {
 	emptySymbolTable,
 	formatType,
 	outline,
+	references,
+	renameRejection,
 	symbolAt
 } from './symbols.js';
 
