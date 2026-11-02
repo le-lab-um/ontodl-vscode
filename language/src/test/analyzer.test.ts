@@ -5,7 +5,7 @@ import { describe, test } from 'node:test';
 
 import { analyze } from '../index';
 
-	describe('OntoDL+ analyzer', () => {
+describe('OntoDL+ analyzer', () => {
 	test('accepts the official examples', () => {
 		const fixtureNames = [
 			'template.odlp',
@@ -16,7 +16,11 @@ import { analyze } from '../index';
 		];
 
 		for (const fixtureName of fixtureNames) {
-			const fixturePath = path.resolve(__dirname, '../../test/fixtures', fixtureName);
+			const fixturePath = path.resolve(
+				__dirname,
+				'../../test/fixtures',
+				fixtureName
+			);
 			const result = analyze(fs.readFileSync(fixturePath, 'utf8'));
 			assert.deepEqual(result.diagnostics, [], fixtureName);
 		}
@@ -75,8 +79,10 @@ triplos { expand extra/triples.odlp; x = iof => C }
 		}
 	});
 
-	test('accepts restriction relation aliases and unparenthesized negation', () => {
-		const source = `Ontology demo
+	test(
+		'accepts restriction relation aliases and unparenthesized negation',
+		() => {
+			const source = `Ontology demo
 conceitos { B, C }
 relacoes { r }
 triplos { B = r => C }
@@ -84,11 +90,12 @@ restricoes {
 	B = r => C :- not B == C, ! B = is-a => C, nao B = iof => C, B = pof => C, B = synonym => C.
 } .`;
 
-		assert.deepEqual(analyze(source).diagnostics, []);
-	});
+			assert.deepEqual(analyze(source).diagnostics, []);
+		});
 
 	test('reports offsets for slash comments', () => {
-		const source = 'Ontology demo // not a comment\nconceitos { C } relacoes { r } triplos { x = iof => C } .';
+		const source = 'Ontology demo // not a comment\n'
+			+ 'conceitos { C } relacoes { r } triplos { x = iof => C } .';
 		const diagnostics = analyze(source).diagnostics;
 
 		assert.ok(diagnostics.length > 0);
@@ -96,7 +103,8 @@ restricoes {
 	});
 
 	test('rejects relations as a section keyword', () => {
-		const source = 'Ontology demo conceitos { C } relations { r } triplos { x = iof => C } .';
+		const source = 'Ontology demo conceitos { C } '
+			+ 'relations { r } triplos { x = iof => C } .';
 
 		assert.ok(analyze(source).diagnostics.length > 0);
 	});

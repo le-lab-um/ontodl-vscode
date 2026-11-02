@@ -14,39 +14,54 @@ export default tseslint.config(
 		ignores: [
 			'**/.vscode-test',
 			'**/out',
-			'language/src/generated/**',
+			'language/src/generated/**'
 		]
 	},
 	js.configs.recommended,
 	...tseslint.configs.recommendedTypeChecked,
 	...tseslint.configs.stylistic,
+	stylistic.configs.customize({
+		indent: 'tab',
+		quotes: 'single',
+		semi: true,
+		commaDangle: 'never',
+		braceStyle: '1tbs'
+	}),
 	{
 		languageOptions: {
 			parserOptions: {
 				projectService: {
-					allowDefaultProject: ['eslint.config.mjs'],
+					allowDefaultProject: ['eslint.config.mjs']
 				},
-				tsconfigRootDir: import.meta.dirname,
-			},
+				tsconfigRootDir: import.meta.dirname
+			}
 		},
 		plugins: {
 			'@stylistic': stylistic
 		},
 		rules: {
 			'curly': 'warn',
-			'@stylistic/semi': ['warn', 'always'],
+			'@stylistic/linebreak-style': ['warn', 'unix'],
+			'@stylistic/max-len': ['warn', {
+				code: 80,
+				tabWidth: 4,
+				ignoreUrls: true,
+				ignorePattern: String.raw`^\s*'.*',?$`,
+				ignoreTemplateLiterals: true,
+				ignoreRegExpLiterals: true
+			}],
 			'@typescript-eslint/no-empty-function': 'off',
 			'@typescript-eslint/naming-convention': [
 				'warn',
 				{
-					'selector': 'import',
-					'format': ['camelCase', 'PascalCase']
+					selector: 'import',
+					format: ['camelCase', 'PascalCase']
 				}
 			],
 			'@typescript-eslint/no-unused-vars': [
 				'error',
 				{
-					'argsIgnorePattern': '^_'
+					argsIgnorePattern: '^_'
 				}
 			]
 		}
@@ -54,6 +69,6 @@ export default tseslint.config(
 	...oxlint.buildFromOxlintConfigFile('./.oxlintrc.json'),
 	{
 		files: ['eslint.config.mjs'],
-		extends: [tseslint.configs.disableTypeChecked],
-	},
+		extends: [tseslint.configs.disableTypeChecked]
+	}
 );

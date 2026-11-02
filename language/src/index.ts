@@ -31,7 +31,6 @@ import {
 	AttributeInstanceContext,
 	AttributeReferenceContext,
 	AtomContext,
-	ConceptContext,
 	GroupedObjectContext,
 	IndividualListContext,
 	OntoDLPlusParser,
@@ -41,7 +40,8 @@ import {
 	RelationshipContext,
 	TripleContext,
 	TripleRelationContext,
-	TypeContext
+	TypeContext,
+	ConceptContext
 } from './generated/OntoDLPlusParser.js';
 import { OntoDLPlusListener } from './generated/OntoDLPlusListener.js';
 
@@ -263,7 +263,9 @@ class DiagnosticSem extends OntoDLPlusListener {
 	}
 }
 
-class DiagnosticListener extends BaseErrorListener implements ANTLRErrorListener {
+class DiagnosticListener
+	extends BaseErrorListener
+	implements ANTLRErrorListener {
 	public readonly diagnostics: LanguageDiagnostic[] = [];
 
 	public constructor(private readonly source: string) {

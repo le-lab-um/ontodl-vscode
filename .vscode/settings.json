@@ -1,5 +1,7 @@
 {
 	"editor.insertSpaces": false,
+	"editor.tabSize": 4,
+	"editor.rulers": [80],
 	"js/ts.tsc.autoDetect": "off",
 	"typescript.preferences.quoteStyle": "single",
 	"editor.codeActionsOnSave": {
