@@ -10,7 +10,37 @@ export interface LanguageDiagnostic {
 export interface AnalysisResult {
 	diagnostics: LanguageDiagnostic[];
 	semanticDiagnostics: LanguageDiagnostic[];
+	symbols: SymbolTable;
 }
+
+export type {
+	AttributeSymbol,
+	AttributeType,
+	CompletionEntry,
+	ConceptSymbol,
+	DeclaredSymbol,
+	IndividualSymbol,
+	NameUse,
+	OntologySymbol,
+	OutlineKind,
+	OutlineNode,
+	RelationSymbol,
+	SectionKind,
+	SectionSymbol,
+	SourceSpan,
+	SymbolHit,
+	SymbolKind,
+	SymbolTable
+} from './symbols.js';
+
+export {
+	completions,
+	describe,
+	emptySymbolTable,
+	formatType,
+	outline,
+	symbolAt
+} from './symbols.js';
 
 import {
 	ANTLRErrorListener,
@@ -19,6 +49,7 @@ import {
 	CharStream,
 	CommonTokenStream,
 	ParseTreeWalker,
+	ParserRuleContext,
 	RecognitionException,
 	Recognizer,
 	TerminalNode,
@@ -30,87 +61,203 @@ import {
 	AttributeDeclarationContext,
 	AttributeInstanceContext,
 	AttributeReferenceContext,
+	AttributesSectionContext,
 	AtomContext,
+	ConceptContext,
+	ConceptsSectionContext,
 	GroupedObjectContext,
+	HeaderContext,
 	IndividualListContext,
+	IndividualsSectionContext,
 	OntoDLPlusParser,
+	OntologyContext,
 	PropertyContext,
 	RelationContext,
 	RelationInformationContext,
+	RelationsSectionContext,
 	RelationshipContext,
+	RestrictionsSectionContext,
 	TripleContext,
 	TripleRelationContext,
-	TypeContext,
-	ConceptContext
+	TriplesSectionContext,
+	TypeContext
 } from './generated/OntoDLPlusParser.js';
 import { OntoDLPlusListener } from './generated/OntoDLPlusListener.js';
+import {
+	type AttributeSymbol,
+	type AttributeType,
+	type ConceptSymbol,
+	type IndividualSymbol,
+	type NameUse,
+	type OntologySymbol,
+	type RelationSymbol,
+	type SectionKind,
+	type SectionSymbol,
+	type SourceSpan,
+	type SymbolTable
+} from './symbols.js';
 
-type AttributeType =
-	| { kind: 'string' }
-	| { kind: 'int' }
-	| { kind: 'enum'; values: string[] };
+interface PendingInverse {
+	owner?: RelationSymbol;
+	id: TerminalNode;
+}
 
 class DiagnosticSem extends OntoDLPlusListener {
 	public readonly diagnostics: LanguageDiagnostic[] = [];
 
-	public readonly concepts = new Set<string>();
-	public readonly relations = new Set<string>();
-	public readonly individualLists = new Set<string>();
-	public readonly attributes = new Set<string>();
+	public readonly concepts = new Map<string, ConceptSymbol>();
+	public readonly relations = new Map<string, RelationSymbol>();
+	public readonly individuals = new Map<string, IndividualSymbol>();
+	public readonly attributes = new Map<string, AttributeSymbol>();
+	public readonly sections: SectionSymbol[] = [];
+	public readonly uses: NameUse[] = [];
 
-	private readonly attributeTypes = new Map<string, AttributeType>();
-	private readonly pendingInverses: TerminalNode[] = [];
+	public ontology?: OntologySymbol;
+
+	private ontologySpan?: SourceSpan;
+	private currentRelation?: RelationSymbol;
+	private readonly pendingInverses: PendingInverse[] = [];
+
+	public override enterOntology = (ctx: OntologyContext): void => {
+		this.ontologySpan = this.ruleSpan(ctx);
+	};
+
+	public override enterHeader = (ctx: HeaderContext): void => {
+		const id = ctx.IDENTIFIER();
+		const name = this.span(id);
+		const body = this.ontologySpan ?? this.ruleSpan(ctx);
+		this.ontology = {
+			name: id.getText(),
+			start: body.start,
+			end: body.end,
+			nameStart: name.start,
+			nameEnd: name.end
+		};
+	};
+
+	public override enterAttributesSection = (
+		ctx: AttributesSectionContext
+	): void => {
+		this.addSection(ctx, 'attributes', ctx.attributesKeyword().getText());
+	};
+
+	public override enterConceptsSection = (
+		ctx: ConceptsSectionContext
+	): void => {
+		this.addSection(ctx, 'concepts', ctx.conceptsKeyword().getText());
+	};
+
+	public override enterIndividualsSection = (
+		ctx: IndividualsSectionContext
+	): void => {
+		this.addSection(
+			ctx,
+			'individuals',
+			ctx.individualsKeyword().getText()
+		);
+	};
+
+	public override enterRelationsSection = (
+		ctx: RelationsSectionContext
+	): void => {
+		this.addSection(ctx, 'relations', ctx.relationsKeyword().getText());
+	};
+
+	public override enterTriplesSection = (
+		ctx: TriplesSectionContext
+	): void => {
+		this.addSection(ctx, 'triples', ctx.triplesKeyword().getText());
+	};
+
+	public override enterRestrictionsSection = (
+		ctx: RestrictionsSectionContext
+	): void => {
+		this.addSection(
+			ctx,
+			'restrictions',
+			ctx.restrictionsKeyword().getText()
+		);
+	};
 
 	public override enterConcept = (ctx: ConceptContext): void => {
-		this.declare(this.concepts, ctx.IDENTIFIER());
+		this.declare(this.concepts, ctx.IDENTIFIER(), (name, span) => ({
+			name,
+			kind: 'concept',
+			...span
+		}));
 	};
 
 	public override enterRelation = (ctx: RelationContext): void => {
-		this.declare(this.relations, ctx.IDENTIFIER());
+		this.currentRelation = this.declare(
+			this.relations,
+			ctx.IDENTIFIER(),
+			(name, span) => ({
+				name,
+				kind: 'relation',
+				...span
+			})
+		);
+	};
+
+	public override exitRelation = (): void => {
+		this.currentRelation = undefined;
 	};
 
 	public override enterIndividualList = (
 		ctx: IndividualListContext
 	): void => {
 		for (const id of ctx.IDENTIFIER()) {
-			this.declare(this.individualLists, id);
+			this.declare(this.individuals, id, (name, span) => ({
+				name,
+				kind: 'individual',
+				...span
+			}));
 		}
 	};
 
 	public override enterAttributeDeclaration = (
 		ctx: AttributeDeclarationContext
 	): void => {
-		const id = ctx.IDENTIFIER();
-		if (!this.declare(this.attributes, id)) {
-			return;
-		}
-		this.attributeTypes.set(id.getText(), this.readType(ctx.type()));
+		const type = this.readType(ctx.type());
+		this.declare(this.attributes, ctx.IDENTIFIER(), (name, span) => ({
+			name,
+			kind: 'attribute',
+			type,
+			...span
+		}));
 	};
 
 	public override enterAttributeReference = (
 		ctx: AttributeReferenceContext
 	): void => {
 		const id = ctx.IDENTIFIER();
+		const name = id.getText();
 		const typeNode = ctx.type();
 		if (!typeNode) {
-			if (!this.attributes.has(id.getText())) {
-				this.report('warning', id, `${id.getText()} not declared`);
+			if (!this.attributes.has(name)) {
+				this.report('warning', id, `${name} not declared`);
 			}
+			this.recordUse(id, 'attribute');
 			return;
 		}
 
 		const type = this.readType(typeNode);
-		const previous = this.attributeTypes.get(id.getText());
+		const previous = this.attributes.get(name);
 		if (!previous) {
-			this.attributes.add(id.getText());
-			this.attributeTypes.set(id.getText(), type);
+			this.attributes.set(name, {
+				name,
+				kind: 'attribute',
+				type,
+				...this.span(id)
+			});
 			return;
 		}
-		if (!this.sameType(previous, type)) {
+		this.recordUse(id, 'attribute');
+		if (!this.sameType(previous.type, type)) {
 			this.report(
 				'warning',
 				id,
-				`${id.getText()} type does not match previous declaration`
+				`${name} type does not match previous declaration`
 			);
 		}
 	};
@@ -120,26 +267,47 @@ class DiagnosticSem extends OntoDLPlusListener {
 	): void => {
 		const id = ctx.IDENTIFIER();
 		const isEndpoint = ctx.domainKeyword() ?? ctx.counterdomainKeyword();
-		if (isEndpoint && id && !this.concepts.has(id.getText())) {
-			this.report('warning', id, `${id.getText()} is not a concept`);
+		if (!isEndpoint || !id) {
+			return;
+		}
+		const name = id.getText();
+		this.recordUse(id, 'concept');
+		if (!this.concepts.has(name)) {
+			this.report('warning', id, `${name} is not a concept`);
+			return;
+		}
+		if (!this.currentRelation) {
+			return;
+		}
+		if (ctx.domainKeyword()) {
+			this.currentRelation.domain ??= name;
+		} else {
+			this.currentRelation.counterdomain ??= name;
 		}
 	};
 
 	public override enterProperty = (ctx: PropertyContext): void => {
 		const id = ctx.IDENTIFIER();
-		if (ctx.inverseKeyword() && id) {
-			this.pendingInverses.push(id);
+		if (!ctx.inverseKeyword() || !id) {
+			return;
 		}
+		this.pendingInverses.push({ owner: this.currentRelation, id });
 	};
 
 	public override exitRelationsSection = (): void => {
-		for (const id of this.pendingInverses) {
-			if (!this.relations.has(id.getText())) {
+		for (const pending of this.pendingInverses) {
+			const name = pending.id.getText();
+			this.recordUse(pending.id, 'relation');
+			if (!this.relations.has(name)) {
 				this.report(
 					'warning',
-					id,
-					`${id.getText()} is not a relation`
+					pending.id,
+					`${name} is not a relation`
 				);
+				continue;
+			}
+			if (pending.owner && !pending.owner.inverse) {
+				pending.owner.inverse = name;
 			}
 		}
 	};
@@ -154,7 +322,11 @@ class DiagnosticSem extends OntoDLPlusListener {
 		ctx: TripleRelationContext
 	): void => {
 		const id = ctx.IDENTIFIER();
-		if (id && !this.relations.has(id.getText())) {
+		if (!id) {
+			return;
+		}
+		this.recordUse(id, 'relation');
+		if (!this.relations.has(id.getText())) {
 			this.report('warning', id, `${id.getText()} not declared`);
 		}
 	};
@@ -172,14 +344,15 @@ class DiagnosticSem extends OntoDLPlusListener {
 	): void => {
 		const id = ctx.IDENTIFIER();
 		const name = id.getText();
-		if (!this.attributes.has(name)) {
+		this.recordUse(id, 'attribute');
+		const attribute = this.attributes.get(name);
+		if (!attribute) {
 			this.report('warning', id, `${name} not declared`);
 			return;
 		}
 
-		const type = this.attributeTypes.get(name);
 		const token = this.atomToken(ctx.atom());
-		if (!type || !token || this.valueMatches(type, ctx.atom())) {
+		if (!token || this.valueMatches(attribute.type, ctx.atom())) {
 			return;
 		}
 		this.report(
@@ -189,25 +362,70 @@ class DiagnosticSem extends OntoDLPlusListener {
 		);
 	};
 
+	public symbols(): SymbolTable {
+		return {
+			ontology: this.ontology,
+			concepts: this.concepts,
+			individuals: this.individuals,
+			relations: this.relations,
+			attributes: this.attributes,
+			sections: this.sections,
+			uses: this.uses
+		};
+	}
+
 	private checkEntity(id: TerminalNode): void {
+		this.recordUse(id, 'entity');
 		if (!this.isDeclaredEntity(id)) {
 			this.report('warning', id, `${id.getText()} not declared`);
 		}
 	}
 
 	private isDeclaredEntity(id: TerminalNode): boolean {
-		return this.individualLists.has(id.getText())
-			|| this.concepts.has(id.getText());
+		const name = id.getText();
+		return this.individuals.has(name) || this.concepts.has(name);
 	}
 
-	private declare(names: Set<string>, id: TerminalNode): boolean {
+	private declare<T extends { kind: NameUse['kind'] }>(
+		symbols: Map<string, T>,
+		id: TerminalNode,
+		create: (name: string, span: SourceSpan) => T
+	): T | undefined {
 		const name = id.getText();
-		if (names.has(name)) {
+		const previous = symbols.get(name);
+		if (previous) {
 			this.report('warning', id, `${name} declared more than once`);
-			return false;
+			this.recordUse(id, previous.kind);
+			return undefined;
 		}
-		names.add(name);
-		return true;
+		const symbol = create(name, this.span(id));
+		symbols.set(name, symbol);
+		return symbol;
+	}
+
+	private addSection(
+		ctx: ParserRuleContext,
+		kind: SectionKind,
+		name: string
+	): void {
+		this.sections.push({ kind, name, ...this.ruleSpan(ctx) });
+	}
+
+	private recordUse(id: TerminalNode, kind: NameUse['kind']): void {
+		this.uses.push({ name: id.getText(), kind, ...this.span(id) });
+	}
+
+	private span(id: TerminalNode): SourceSpan {
+		return {
+			start: id.getSymbol().start,
+			end: id.getSymbol().stop + 1
+		};
+	}
+
+	private ruleSpan(ctx: ParserRuleContext): SourceSpan {
+		const start = Math.max(0, ctx.start?.start ?? 0);
+		const stop = ctx.stop?.stop ?? start - 1;
+		return { start, end: Math.max(start, stop + 1) };
 	}
 
 	private readType(ctx: TypeContext): AttributeType {
@@ -334,6 +552,7 @@ export function analyze(source: string): AnalysisResult {
 
 	return {
 		diagnostics: listener.diagnostics,
-		semanticDiagnostics: ontoListener.diagnostics
+		semanticDiagnostics: ontoListener.diagnostics,
+		symbols: ontoListener.symbols()
 	};
 }
