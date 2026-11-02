@@ -16,7 +16,9 @@ describe('OntoDL+ semantic analysis', () => {
 		];
 
 		for (const fixtureName of fixtureNames) {
-			const fixturePath = path.resolve(__dirname, '../../test/fixtures', fixtureName);
+			const fixturePath = path.resolve(__dirname,
+				'../../test/fixtures',
+				fixtureName);
 			const result = analyze(fs.readFileSync(fixturePath, 'utf8'));
 			assert.deepEqual(result.semanticDiagnostics, [], fixtureName);
 		}
