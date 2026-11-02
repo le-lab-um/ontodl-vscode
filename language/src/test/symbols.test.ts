@@ -4,7 +4,13 @@ import * as path from 'node:path';
 import { describe, test } from 'node:test';
 
 import { analyze } from '../index';
-import { completions, outline, symbolAt } from '../symbols';
+import {
+	completions,
+	outline,
+	references,
+	renameRejection,
+	symbolAt
+} from '../symbols';
 
 function fixture(name: string): string {
 	const fixturePath = path.resolve(__dirname, '../../test/fixtures', name);
@@ -122,4 +128,83 @@ triplos { City = links => City }
 		assert.equal(labels.includes('JavaScript'), false);
 		assert.equal(labels.includes('TypeScript'), false);
 	});
+
+	test('lists the declaration and every use of a name', () => {
+		const source = `Ontology demo
+atributos { distance: int }
+conceitos { City[distance] }
+individuos { braga }
+relacoes { links[dominio:City, contradominio:City] }
+triplos { braga = links => City[distance=1] }
+.`;
+		const symbols = analyze(source).symbols;
+		const city = source.indexOf('City');
+
+		assert.deepEqual(
+			references(symbols, city)?.map(span => span.start),
+			occurrences(source, 'City')
+		);
+		assert.deepEqual(
+			references(symbols, source.indexOf('braga'))
+				?.map(span => span.start),
+			occurrences(source, 'braga')
+		);
+		assert.deepEqual(
+			references(symbols, source.indexOf('links'))
+				?.map(span => span.start),
+			occurrences(source, 'links')
+		);
+		assert.deepEqual(
+			references(symbols, source.indexOf('distance'))
+				?.map(span => span.start),
+			occurrences(source, 'distance')
+		);
+		assert.deepEqual(
+			references(symbols, city, false)?.map(span => span.start),
+			occurrences(source, 'City').slice(1)
+		);
+		assert.equal(references(symbols, source.indexOf('triplos')), undefined);
+	});
+
+	test('rejects a rename that is not an identifier', () => {
+		const source = `Ontology demo
+conceitos { City }
+relacoes { links }
+triplos { City = links => City }
+.`;
+		const symbols = analyze(source).symbols;
+		const city = source.indexOf('City');
+
+		assert.equal(renameRejection(symbols, city, 'Town'), undefined);
+		assert.equal(
+			renameRejection(symbols, city, 'iof'),
+			'iof is a keyword'
+		);
+		assert.equal(
+			renameRejection(symbols, city, '1city'),
+			'Name must be an identifier'
+		);
+		assert.equal(
+			renameRejection(symbols, city, 'links'),
+			'links is already declared'
+		);
+		assert.equal(
+			renameRejection(symbols, source.indexOf('triplos'), 'Town'),
+			'Name cannot be renamed'
+		);
+	});
 });
+
+function occurrences(source: string, name: string): number[] {
+	const starts: number[] = [];
+	let from = 0;
+	while (from < source.length) {
+		const start = source.indexOf(name, from);
+		if (start < 0) {
+			break;
+		}
+		starts.push(start);
+		from = start + name.length;
+	}
+	return starts;
+}
