@@ -6,22 +6,41 @@
 import {
 	createConnection,
 	TextDocuments,
-	Diagnostic,
-	DiagnosticSeverity,
-	ProposedFeatures,
-	InitializeParams,
 	CompletionItem,
 	CompletionItemKind,
-	TextDocumentSyncKind,
-	InitializeResult,
+	Definition,
+	Diagnostic,
+	DiagnosticSeverity,
 	DocumentDiagnosticReportKind,
-	type DocumentDiagnosticReport
+	DocumentSymbol,
+	FoldingRange,
+	FoldingRangeKind,
+	Hover,
+	InitializeParams,
+	InitializeResult,
+	MarkupKind,
+	ProposedFeatures,
+	SymbolKind,
+	TextDocumentSyncKind,
+	type DocumentDiagnosticReport,
+	type Position
 } from 'vscode-languageserver/node';
 
 import {
 	TextDocument
 } from 'vscode-languageserver-textdocument';
-import { analyze } from '@ontodl/language';
+import {
+	analyze,
+	completions,
+	describe,
+	emptySymbolTable,
+	outline,
+	symbolAt,
+	type CompletionEntry,
+	type OutlineKind,
+	type OutlineNode,
+	type SymbolHit
+} from '@ontodl/language';
 
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -41,10 +60,13 @@ connection.onInitialize((params: InitializeParams) => {
 	const result: InitializeResult = {
 		capabilities: {
 			textDocumentSync: TextDocumentSyncKind.Incremental,
-			// Tell the client that this server supports code completion.
 			completionProvider: {
-				resolveProvider: true
+				resolveProvider: false
 			},
+			definitionProvider: true,
+			documentSymbolProvider: true,
+			foldingRangeProvider: true,
+			hoverProvider: true,
 			diagnosticProvider: {
 				interFileDependencies: false,
 				workspaceDiagnostics: false
@@ -122,41 +144,178 @@ connection.onDidChangeWatchedFiles(() => {
 	connection.console.log('We received a file change event');
 });
 
-// This handler provides the initial list of the completion items.
-connection.onCompletion(
-	(): CompletionItem[] => {
-		// The pass parameter contains the position of the text document in
-		// which code complete got requested. For the example we ignore this
-		// info and always provide the same completion items.
-		return [
-			{
-				label: 'TypeScript',
-				kind: CompletionItemKind.Text,
-				data: 1
-			},
-			{
-				label: 'JavaScript',
-				kind: CompletionItemKind.Text,
-				data: 2
-			}
-		];
-	}
-);
-
-// This handler resolves additional information for the item selected in
-// the completion list.
-connection.onCompletionResolve(
-	(item: CompletionItem): CompletionItem => {
-		if (item.data === 1) {
-			item.detail = 'TypeScript details';
-			item.documentation = 'TypeScript documentation';
-		} else if (item.data === 2) {
-			item.detail = 'JavaScript details';
-			item.documentation = 'JavaScript documentation';
+connection.onCompletion((params): CompletionItem[] => {
+	const document = documents.get(params.textDocument.uri);
+	const table = document
+		? analyze(document.getText()).symbols
+		: emptySymbolTable();
+	return completions(table).map((entry) => {
+		const item: CompletionItem = {
+			label: entry.label,
+			kind: completionKind(entry.kind)
+		};
+		if (entry.detail) {
+			item.detail = entry.detail;
 		}
 		return item;
+	});
+});
+
+connection.onHover((params): Hover | null => {
+	const found = locate(params.textDocument.uri, params.position);
+	if (!found) {
+		return null;
 	}
-);
+	return {
+		contents: {
+			kind: MarkupKind.PlainText,
+			value: describe(found.symbol)
+		},
+		range: rangeOf(found.document, found.start, found.end)
+	};
+});
+
+connection.onDefinition((params): Definition | null => {
+	const found = locate(params.textDocument.uri, params.position);
+	if (!found) {
+		return null;
+	}
+	return {
+		uri: found.document.uri,
+		range: rangeOf(
+			found.document,
+			found.symbol.start,
+			found.symbol.end
+		)
+	};
+});
+
+connection.onDocumentSymbol((params): DocumentSymbol[] => {
+	const document = documents.get(params.textDocument.uri);
+	if (!document) {
+		return [];
+	}
+	return outline(analyze(document.getText()).symbols)
+		.map(node => toDocumentSymbol(document, node));
+});
+
+connection.onFoldingRanges((params): FoldingRange[] => {
+	const document = documents.get(params.textDocument.uri);
+	if (!document) {
+		return [];
+	}
+	return foldingRanges(
+		document,
+		outline(analyze(document.getText()).symbols)
+	);
+});
+
+function locate(uri: string, position: Position): LocatedSymbol | undefined {
+	const document = documents.get(uri);
+	if (!document) {
+		return undefined;
+	}
+	const hit = symbolAt(
+		analyze(document.getText()).symbols,
+		document.offsetAt(position)
+	);
+	if (!hit) {
+		return undefined;
+	}
+	return { document, ...hit };
+}
+
+function rangeOf(document: TextDocument, start: number, end: number) {
+	return {
+		start: document.positionAt(start),
+		end: document.positionAt(Math.min(end, document.getText().length))
+	};
+}
+
+function toDocumentSymbol(
+	document: TextDocument,
+	node: OutlineNode
+): DocumentSymbol {
+	const symbol: DocumentSymbol = {
+		name: node.name,
+		kind: outlineKind(node.kind),
+		range: rangeOf(document, node.start, node.end),
+		selectionRange: rangeOf(
+			document,
+			node.selectionStart,
+			node.selectionEnd
+		),
+		children: node.children.map(child =>
+			toDocumentSymbol(document, child)
+		)
+	};
+	if (node.detail) {
+		symbol.detail = node.detail;
+	}
+	return symbol;
+}
+
+function foldingRanges(
+	document: TextDocument,
+	nodes: OutlineNode[]
+): FoldingRange[] {
+	const ranges: FoldingRange[] = [];
+	const visit = (node: OutlineNode): void => {
+		const start = document.positionAt(node.start);
+		const end = document.positionAt(
+			Math.min(node.end, document.getText().length)
+		);
+		if (end.line > start.line) {
+			ranges.push({
+				startLine: start.line,
+				endLine: end.line,
+				kind: FoldingRangeKind.Region
+			});
+		}
+		node.children.forEach(visit);
+	};
+	nodes.forEach(visit);
+	return ranges;
+}
+
+function completionKind(kind: CompletionEntry['kind']): CompletionItemKind {
+	if (kind === 'keyword') {
+		return CompletionItemKind.Keyword;
+	}
+	if (kind === 'concept') {
+		return CompletionItemKind.Class;
+	}
+	if (kind === 'individual') {
+		return CompletionItemKind.Constant;
+	}
+	if (kind === 'relation') {
+		return CompletionItemKind.Interface;
+	}
+	return CompletionItemKind.Field;
+}
+
+function outlineKind(kind: OutlineKind): SymbolKind {
+	if (kind === 'ontology') {
+		return SymbolKind.Module;
+	}
+	if (kind === 'section') {
+		return SymbolKind.Namespace;
+	}
+	if (kind === 'concept') {
+		return SymbolKind.Class;
+	}
+	if (kind === 'individual') {
+		return SymbolKind.Constant;
+	}
+	if (kind === 'relation') {
+		return SymbolKind.Interface;
+	}
+	return SymbolKind.Field;
+}
+
+interface LocatedSymbol extends SymbolHit {
+	document: TextDocument;
+}
 
 // Make the text document manager listen on the connection
 // for open, change and close text document events

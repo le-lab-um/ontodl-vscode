@@ -1,0 +1,5 @@
+Ontology demo
+conceitos { City }
+relacoes { links }
+triplos { City = links => City }
+.
