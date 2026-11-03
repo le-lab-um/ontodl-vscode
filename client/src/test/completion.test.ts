@@ -9,7 +9,7 @@ import * as assert from 'assert';
 import { getDocUri, activate } from './helper';
 
 suite('Should do completion', () => {
-	const docUri = getDocUri('completion.txt');
+	const docUri = getDocUri('completion.odlp');
 
 	test('Completes OntoDL+ keywords and declared names', async () => {
 		await activate(docUri);

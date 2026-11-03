@@ -9,7 +9,7 @@ import * as assert from 'assert';
 import { getDocUri, activate } from './helper';
 
 suite('Should get diagnostics', () => {
-	const docUri = getDocUri('diagnostics.txt');
+	const docUri = getDocUri('diagnostics.odlp');
 
 	test('Accepts valid OntoDL+ syntax', async () => {
 		await testDiagnostics(docUri, []);

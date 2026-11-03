@@ -9,10 +9,10 @@ describe('OntoDL+ semantic analysis', () => {
 	test('reports no semantic diagnostics for the official examples', () => {
 		const fixtureNames = [
 			'template.odlp',
-			'mapa.txt',
-			'mapaWithGroup.txt',
-			'mapaWithProps.txt',
-			'mapaWithAtribs.txt'
+			'mapa.odlp',
+			'mapaWithGroup.odlp',
+			'mapaWithProps.odlp',
+			'mapaWithAtribs.odlp'
 		];
 
 		for (const fixtureName of fixtureNames) {

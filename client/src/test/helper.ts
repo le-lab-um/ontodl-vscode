@@ -8,11 +8,11 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 
 /**
- * Activates the vscode.lsp-sample extension
+ * Activates the OntoDL+ extension.
+ * The id is `publisher.name` from package.json.
  */
 export async function activate(docUri: vscode.Uri) {
-	// The extensionId is `publisher.name` from package.json
-	const ext = vscode.extensions.getExtension('vscode-samples.ontodlplusLSP')!;
+	const ext = vscode.extensions.getExtension('le-lab-um.ontodlplus')!;
 	await ext.activate();
 	try {
 		const doc = await vscode.workspace.openTextDocument(docUri);
