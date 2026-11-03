@@ -1,5 +1,6 @@
 Ontology demo
 conceitos { C }
+individuos { x }
 relacoes { r }
 triplos { x = iof => C }
 .

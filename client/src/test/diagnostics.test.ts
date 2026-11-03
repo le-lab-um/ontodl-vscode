@@ -1,21 +1,25 @@
-/* --------------------------------------------------------------------------------------------
+/* -----------------------------------------------------------------------------
  * Copyright (c) Microsoft Corporation. All rights reserved.
- * Licensed under the MIT License. See License.txt in the project root for license information.
- * ------------------------------------------------------------------------------------------ */
+ * Licensed under the MIT License. See License.txt in the project root for
+ * license information.
+ * -------------------------------------------------------------------------- */
 
 import * as vscode from 'vscode';
 import * as assert from 'assert';
 import { getDocUri, activate } from './helper';
 
 suite('Should get diagnostics', () => {
-	const docUri = getDocUri('diagnostics.txt');
+	const docUri = getDocUri('diagnostics.odlp');
 
 	test('Accepts valid OntoDL+ syntax', async () => {
 		await testDiagnostics(docUri, []);
 	});
 });
 
-async function testDiagnostics(docUri: vscode.Uri, expectedDiagnostics: vscode.Diagnostic[]) {
+async function testDiagnostics(
+	docUri: vscode.Uri,
+	expectedDiagnostics: vscode.Diagnostic[]
+) {
 	await activate(docUri);
 
 	const actualDiagnostics = vscode.languages.getDiagnostics(docUri);

@@ -1,26 +1,52 @@
-/* --------------------------------------------------------------------------------------------
+/* -----------------------------------------------------------------------------
  * Copyright (c) Microsoft Corporation. All rights reserved.
- * Licensed under the MIT License. See License.txt in the project root for license information.
- * ------------------------------------------------------------------------------------------ */
+ * Licensed under the MIT License. See License.txt in the project root for
+ * license information.
+ * -------------------------------------------------------------------------- */
 import {
 	createConnection,
 	TextDocuments,
-	Diagnostic,
-	DiagnosticSeverity,
-	ProposedFeatures,
-	InitializeParams,
 	CompletionItem,
 	CompletionItemKind,
-	TextDocumentSyncKind,
-	InitializeResult,
+	Definition,
+	Diagnostic,
+	DiagnosticSeverity,
 	DocumentDiagnosticReportKind,
-	type DocumentDiagnosticReport
+	DocumentSymbol,
+	FoldingRange,
+	FoldingRangeKind,
+	Hover,
+	InitializeParams,
+	InitializeResult,
+	ErrorCodes,
+	Location,
+	MarkupKind,
+	ProposedFeatures,
+	ResponseError,
+	SymbolKind,
+	TextDocumentSyncKind,
+	WorkspaceEdit,
+	type DocumentDiagnosticReport,
+	type Position
 } from 'vscode-languageserver/node';
 
 import {
 	TextDocument
 } from 'vscode-languageserver-textdocument';
-import { analyze } from '@ontodl/language';
+import {
+	analyze,
+	completions,
+	describe,
+	emptySymbolTable,
+	outline,
+	references,
+	renameRejection,
+	symbolAt,
+	type CompletionEntry,
+	type OutlineKind,
+	type OutlineNode,
+	type SymbolHit
+} from '@ontodl/language';
 
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -40,9 +66,16 @@ connection.onInitialize((params: InitializeParams) => {
 	const result: InitializeResult = {
 		capabilities: {
 			textDocumentSync: TextDocumentSyncKind.Incremental,
-			// Tell the client that this server supports code completion.
 			completionProvider: {
-				resolveProvider: true
+				resolveProvider: false
+			},
+			definitionProvider: true,
+			documentSymbolProvider: true,
+			foldingRangeProvider: true,
+			hoverProvider: true,
+			referencesProvider: true,
+			renameProvider: {
+				prepareProvider: true
 			},
 			diagnosticProvider: {
 				interFileDependencies: false,
@@ -67,7 +100,6 @@ connection.onInitialized(() => {
 		});
 	}
 });
-
 
 connection.languages.diagnostics.on((params) => {
 	const document = documents.get(params.textDocument.uri);
@@ -96,7 +128,11 @@ connection.languages.diagnostics.on((params) => {
 function validateTextDocument(textDocument: TextDocument): Diagnostic[] {
 	const result = analyze(textDocument.getText());
 
-	return result.diagnostics.map(diagnostic => {
+	const allDiagnostics = result.diagnostics.concat(
+		result.semanticDiagnostics
+	);
+
+	return allDiagnostics.map((diagnostic) => {
 		const lspDiagnostic: Diagnostic = {
 			severity: diagnostic.severity === 'error'
 				? DiagnosticSeverity.Error
@@ -118,41 +154,233 @@ connection.onDidChangeWatchedFiles(() => {
 	connection.console.log('We received a file change event');
 });
 
-// This handler provides the initial list of the completion items.
-connection.onCompletion(
-	(): CompletionItem[] => {
-		// The pass parameter contains the position of the text document in
-		// which code complete got requested. For the example we ignore this
-		// info and always provide the same completion items.
-		return [
-			{
-				label: 'TypeScript',
-				kind: CompletionItemKind.Text,
-				data: 1
-			},
-			{
-				label: 'JavaScript',
-				kind: CompletionItemKind.Text,
-				data: 2
-			}
-		];
-	}
-);
-
-// This handler resolves additional information for the item selected in
-// the completion list.
-connection.onCompletionResolve(
-	(item: CompletionItem): CompletionItem => {
-		if (item.data === 1) {
-			item.detail = 'TypeScript details';
-			item.documentation = 'TypeScript documentation';
-		} else if (item.data === 2) {
-			item.detail = 'JavaScript details';
-			item.documentation = 'JavaScript documentation';
+connection.onCompletion((params): CompletionItem[] => {
+	const document = documents.get(params.textDocument.uri);
+	const table = document
+		? analyze(document.getText()).symbols
+		: emptySymbolTable();
+	return completions(table).map((entry) => {
+		const item: CompletionItem = {
+			label: entry.label,
+			kind: completionKind(entry.kind)
+		};
+		if (entry.detail) {
+			item.detail = entry.detail;
 		}
 		return item;
+	});
+});
+
+connection.onHover((params): Hover | null => {
+	const found = locate(params.textDocument.uri, params.position);
+	if (!found) {
+		return null;
 	}
-);
+	return {
+		contents: {
+			kind: MarkupKind.PlainText,
+			value: describe(found.symbol)
+		},
+		range: rangeOf(found.document, found.start, found.end)
+	};
+});
+
+connection.onDefinition((params): Definition | null => {
+	const found = locate(params.textDocument.uri, params.position);
+	if (!found) {
+		return null;
+	}
+	return {
+		uri: found.document.uri,
+		range: rangeOf(
+			found.document,
+			found.symbol.start,
+			found.symbol.end
+		)
+	};
+});
+
+connection.onReferences((params): Location[] | null => {
+	const document = documents.get(params.textDocument.uri);
+	if (!document) {
+		return null;
+	}
+	const spans = references(
+		analyze(document.getText()).symbols,
+		document.offsetAt(params.position),
+		params.context.includeDeclaration
+	);
+	if (!spans) {
+		return null;
+	}
+	return spans.map(span => ({
+		uri: document.uri,
+		range: rangeOf(document, span.start, span.end)
+	}));
+});
+
+connection.onPrepareRename((params) => {
+	const found = locate(params.textDocument.uri, params.position);
+	if (!found) {
+		return null;
+	}
+	return {
+		range: rangeOf(found.document, found.start, found.end),
+		placeholder: found.symbol.name
+	};
+});
+
+connection.onRenameRequest((params): WorkspaceEdit => {
+	const document = documents.get(params.textDocument.uri);
+	if (!document) {
+		throw new ResponseError(
+			ErrorCodes.InvalidRequest,
+			'Document is not open'
+		);
+	}
+	const table = analyze(document.getText()).symbols;
+	const offset = document.offsetAt(params.position);
+	const problem = renameRejection(table, offset, params.newName);
+	if (problem) {
+		throw new ResponseError(ErrorCodes.InvalidParams, problem);
+	}
+	const spans = references(table, offset, true) ?? [];
+	return {
+		changes: {
+			[document.uri]: spans.map(span => ({
+				range: rangeOf(document, span.start, span.end),
+				newText: params.newName
+			}))
+		}
+	};
+});
+
+connection.onDocumentSymbol((params): DocumentSymbol[] => {
+	const document = documents.get(params.textDocument.uri);
+	if (!document) {
+		return [];
+	}
+	return outline(analyze(document.getText()).symbols)
+		.map(node => toDocumentSymbol(document, node));
+});
+
+connection.onFoldingRanges((params): FoldingRange[] => {
+	const document = documents.get(params.textDocument.uri);
+	if (!document) {
+		return [];
+	}
+	return foldingRanges(
+		document,
+		outline(analyze(document.getText()).symbols)
+	);
+});
+
+function locate(uri: string, position: Position): LocatedSymbol | undefined {
+	const document = documents.get(uri);
+	if (!document) {
+		return undefined;
+	}
+	const hit = symbolAt(
+		analyze(document.getText()).symbols,
+		document.offsetAt(position)
+	);
+	if (!hit) {
+		return undefined;
+	}
+	return { document, ...hit };
+}
+
+function rangeOf(document: TextDocument, start: number, end: number) {
+	return {
+		start: document.positionAt(start),
+		end: document.positionAt(Math.min(end, document.getText().length))
+	};
+}
+
+function toDocumentSymbol(
+	document: TextDocument,
+	node: OutlineNode
+): DocumentSymbol {
+	const symbol: DocumentSymbol = {
+		name: node.name,
+		kind: outlineKind(node.kind),
+		range: rangeOf(document, node.start, node.end),
+		selectionRange: rangeOf(
+			document,
+			node.selectionStart,
+			node.selectionEnd
+		),
+		children: node.children.map(child =>
+			toDocumentSymbol(document, child)
+		)
+	};
+	if (node.detail) {
+		symbol.detail = node.detail;
+	}
+	return symbol;
+}
+
+function foldingRanges(
+	document: TextDocument,
+	nodes: OutlineNode[]
+): FoldingRange[] {
+	const ranges: FoldingRange[] = [];
+	const visit = (node: OutlineNode): void => {
+		const start = document.positionAt(node.start);
+		const end = document.positionAt(
+			Math.min(node.end, document.getText().length)
+		);
+		if (end.line > start.line) {
+			ranges.push({
+				startLine: start.line,
+				endLine: end.line,
+				kind: FoldingRangeKind.Region
+			});
+		}
+		node.children.forEach(visit);
+	};
+	nodes.forEach(visit);
+	return ranges;
+}
+
+function completionKind(kind: CompletionEntry['kind']): CompletionItemKind {
+	if (kind === 'keyword') {
+		return CompletionItemKind.Keyword;
+	}
+	if (kind === 'concept') {
+		return CompletionItemKind.Class;
+	}
+	if (kind === 'individual') {
+		return CompletionItemKind.Constant;
+	}
+	if (kind === 'relation') {
+		return CompletionItemKind.Interface;
+	}
+	return CompletionItemKind.Field;
+}
+
+function outlineKind(kind: OutlineKind): SymbolKind {
+	if (kind === 'ontology') {
+		return SymbolKind.Module;
+	}
+	if (kind === 'section') {
+		return SymbolKind.Namespace;
+	}
+	if (kind === 'concept') {
+		return SymbolKind.Class;
+	}
+	if (kind === 'individual') {
+		return SymbolKind.Constant;
+	}
+	if (kind === 'relation') {
+		return SymbolKind.Interface;
+	}
+	return SymbolKind.Field;
+}
+
+interface LocatedSymbol extends SymbolHit {
+	document: TextDocument;
+}
 
 // Make the text document manager listen on the connection
 // for open, change and close text document events
