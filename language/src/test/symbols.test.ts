@@ -19,7 +19,7 @@ function fixture(name: string): string {
 
 describe('OntoDL+ symbol table', () => {
 	test('stores declarations with their positions', () => {
-		const source = fixture('mapaWithProps.txt');
+		const source = fixture('mapaWithProps.odlp');
 		const symbols = analyze(source).symbols;
 
 		const city = symbols.concepts.get('Cidade');
@@ -58,7 +58,7 @@ triplos { City = links => City }
 	});
 
 	test('resolves a name used in a triple to its declaration', () => {
-		const source = fixture('mapa.txt');
+		const source = fixture('mapa.odlp');
 		const symbols = analyze(source).symbols;
 		const use = source.indexOf('=> Cidade');
 		const offset = use + '=> '.length;
@@ -89,7 +89,7 @@ triplos { C = r => C }
 	});
 
 	test('builds an outline of sections and declarations', () => {
-		const source = fixture('mapa.txt');
+		const source = fixture('mapa.odlp');
 		const root = outline(analyze(source).symbols)[0];
 
 		assert.equal(root.name, 'mapa');
