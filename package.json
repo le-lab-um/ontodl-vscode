@@ -1,6 +1,7 @@
 {
-	"name": "ontodlplusLSP",
-	"description": "A language server for OntoDL+.",
+	"name": "ontodlplus",
+	"displayName": "OntoDL+",
+	"description": "Language support for OntoDL+ ontologies.",
 	"author": "Grupo 4",
 	"contributors": [
 		"Henrique Guimarães Perereira <pg61139@alunos.uminho.pt>",
@@ -8,29 +9,36 @@
 		"Carlos Diogo Fernandes Pina <pg61135@alunos.uminho.pt>"
 	],
 	"license": "MIT",
-	"version": "1.0.0",
+	"version": "0.1.0",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/le-lab-um/ontodl-vscode"
 	},
-	"publisher": "vscode-samples",
-	"categories": [],
+	"bugs": {
+		"url": "https://github.com/le-lab-um/ontodl-vscode/issues"
+	},
+	"publisher": "le-lab-um",
+	"categories": [
+		"Programming Languages"
+	],
 	"keywords": [
-		"multi-root ready"
+		"ontodl",
+		"ontology",
+		"lsp"
 	],
 	"engines": {
 		"vscode": "^1.100.0"
 	},
 	"activationEvents": [
-		"onLanguage:plaintext"
+		"onLanguage:ontodlp"
 	],
 	"main": "./client/out/extension",
 	"contributes": {
 		"configuration": {
 			"type": "object",
-			"title": "Example configuration",
+			"title": "OntoDL+",
 			"properties": {
-				"languageServerExample.trace.server": {
+				"ontodl.trace.server": {
 					"scope": "window",
 					"type": "string",
 					"enum": [
@@ -42,7 +50,20 @@
 					"description": "Traces the communication between the language server and the client."
 				}
 			}
-		}
+		},
+		"languages": [
+			{
+				"id": "ontodlp",
+				"aliases": [
+					"OntoDL+",
+					"OntoDL"
+				],
+				"extensions": [
+					".odlp"
+				],
+				"configuration": "./language-configuration.json"
+			}
+		]
 	},
 	"scripts": {
 		"vscode:prepublish": "npm run compile",
