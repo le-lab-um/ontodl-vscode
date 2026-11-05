@@ -1,6 +1,7 @@
 export interface SourceSpan {
 	start: number;
 	end: number;
+	imported?: boolean;
 }
 
 export type AttributeType =
@@ -229,7 +230,7 @@ export function symbolAt(
 	offset: number
 ): SymbolHit | undefined {
 	const declared = declarations(table).find(symbol =>
-		covers(symbol, offset)
+		!symbol.imported && covers(symbol, offset)
 	);
 	if (declared) {
 		return {
@@ -276,7 +277,7 @@ export function renameRejection(
 	newName: string
 ): string | undefined {
 	const hit = symbolAt(table, offset);
-	if (!hit) {
+	if (!hit || hit.symbol.imported) {
 		return 'Name cannot be renamed';
 	}
 	if (!IDENTIFIER.test(newName)) {

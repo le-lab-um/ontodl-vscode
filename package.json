@@ -57,7 +57,14 @@
 				],
 				"extensions": [
 					".odlp"
-				],
+				]
+			}
+		],
+		"grammars": [
+			{
+				"language": "ontodlp",
+				"scopeName": "source.ontodlp",
+				"path": "./syntaxes/ontodlp.tmLanguage.json",
 				"configuration": "./language-configuration.json"
 			}
 		],

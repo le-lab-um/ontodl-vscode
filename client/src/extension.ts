@@ -5,7 +5,7 @@
  * -------------------------------------------------------------------------- */
 
 import * as path from 'path';
-import { ExtensionContext } from 'vscode';
+import { ExtensionContext, workspace } from 'vscode';
 
 import {
 	LanguageClient,
@@ -32,8 +32,15 @@ export function activate(context: ExtensionContext) {
 		}
 	};
 
+	// Route OntoDL+ documents to the language server.
+	// TextMate syntax highlighting is registered separately in package.json.
 	const clientOptions: LanguageClientOptions = {
-		documentSelector: [{ scheme: 'file', language: 'ontodlp' }]
+		documentSelector: [{ scheme: 'file', language: 'ontodlp' }],
+		synchronize: {
+			// Notify the server about file changes to '.clientrc files
+			// contained in the workspace
+			fileEvents: workspace.createFileSystemWatcher('**/.clientrc')
+		}
 	};
 
 	client = new LanguageClient(
