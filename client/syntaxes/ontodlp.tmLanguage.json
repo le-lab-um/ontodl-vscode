@@ -1,0 +1,136 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "OntoDL+",
+  "scopeName": "source.ontodlp",
+  "fileTypes": ["odlp"],
+  "patterns": [
+    { "include": "#comments" },
+    { "include": "#strings" },
+    { "include": "#header" },
+    { "include": "#sections" },
+    { "include": "#imports" },
+    { "include": "#types" },
+    { "include": "#relation-metadata" },
+    { "include": "#built-in-relations" },
+    { "include": "#relation-properties" },
+    { "include": "#operators" },
+    { "include": "#numbers" },
+    { "include": "#punctuation" },
+    { "include": "#identifiers" }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.line.percent.ontodlp",
+          "match": "%.*$"
+        }
+      ]
+    },
+    "strings": {
+      "patterns": [
+        {
+          "name": "string.quoted.double.ontodlp",
+          "begin": "\"",
+          "end": "\"|$",
+          "beginCaptures": { "0": { "name": "punctuation.definition.string.begin.ontodlp" } },
+          "endCaptures": { "0": { "name": "punctuation.definition.string.end.ontodlp" } },
+          "patterns": [
+            { "name": "constant.character.escape.ontodlp", "match": "\\\\[\\\\\"'nrt]" }
+          ]
+        },
+        {
+          "name": "string.quoted.single.ontodlp",
+          "begin": "'",
+          "end": "'|$",
+          "beginCaptures": { "0": { "name": "punctuation.definition.string.begin.ontodlp" } },
+          "endCaptures": { "0": { "name": "punctuation.definition.string.end.ontodlp" } },
+          "patterns": [
+            { "name": "constant.character.escape.ontodlp", "match": "\\\\[\\\\\"'nrt]" }
+          ]
+        }
+      ]
+    },
+    "header": {
+      "patterns": [
+        {
+          "match": "\\b(Ontologia|Ontology)\\b",
+          "name": "keyword.control.ontodlp"
+        }
+      ]
+    },
+    "sections": {
+      "patterns": [
+        {
+          "match": "\\b(atributos|attributes|dataProperties|propriedadesDados|conceitos|concepts|classes|individuos|individuals|relacoes|relationships|objectProperties|propriedadesObjetos|triplos|triples|restricoes|restrictions)\\b(?=\\s*\\{)",
+          "name": "keyword.control.section.ontodlp"
+        }
+      ]
+    },
+    "imports": {
+      "patterns": [
+        {
+          "match": "\\b(expand|expands)\\b",
+          "name": "keyword.control.import.ontodlp"
+        }
+      ]
+    },
+    "types": {
+      "patterns": [
+        {
+          "match": "\\b(string|int|enum)\\b",
+          "name": "storage.type.ontodlp"
+        }
+      ]
+    },
+    "relation-metadata": {
+      "patterns": [
+        {
+          "match": "\\b(domain|dominio|counterdomain|codomain|contradominio|codiminio|props)\\b(?=\\s*:)",
+          "name": "support.type.property-name.ontodlp"
+        }
+      ]
+    },
+    "built-in-relations": {
+      "patterns": [
+        {
+          "match": "\\b(iof|instancia|instanceof|type|pof|parte|partOf|is-a|subclasse|a|subClassOf|synonym|sinonimo)\\b",
+          "name": "keyword.operator.relation.ontodlp"
+        }
+      ]
+    },
+    "relation-properties": {
+      "patterns": [
+        {
+          "match": "\\b(bijecao|bijection|injecao|injection|sobrejecao|surjection|abstracao|abstraction|funcao|function|representacao|representation|sobrejetiva|surjective|simples|simple|inteira|entire|injetiva|injective|inversaDe|inverseOf)\\b",
+          "name": "constant.language.relation-property.ontodlp"
+        }
+      ]
+    },
+    "operators": {
+      "patterns": [
+        { "match": ":-|=>|\\\\=|==|=|!", "name": "keyword.operator.ontodlp" },
+        { "match": "\\b(not|nao)\\b", "name": "keyword.operator.logical.ontodlp" }
+      ]
+    },
+    "numbers": {
+      "patterns": [
+        { "match": "(?<![\\w-])-?[0-9]+\\b", "name": "constant.numeric.ontodlp" }
+      ]
+    },
+    "punctuation": {
+      "patterns": [
+        { "match": "[{}\\[\\]()]", "name": "punctuation.section.ontodlp" },
+        { "match": "[,;:.]", "name": "punctuation.separator.ontodlp" }
+      ]
+    },
+    "identifiers": {
+      "patterns": [
+        {
+          "match": "\\b[A-Za-z\\u00C0-\\u024F][A-Za-z0-9_\\-/\\u00C0-\\u024F]*\\b",
+          "name": "variable.other.ontodlp"
+        }
+      ]
+    }
+  }
+}
