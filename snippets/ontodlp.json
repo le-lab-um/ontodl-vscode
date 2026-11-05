@@ -1,0 +1,21 @@
+{
+	"Ontology skeleton": {
+		"prefix": "ontology",
+		"description": "Insert an ontology skeleton",
+		"body": [
+			"Ontologia ${1:name}",
+			"",
+			"conceitos {",
+			"\t${2:Concept}",
+			"}",
+			"",
+			"relacoes {",
+			"\t${3:relation}",
+			"}",
+			"",
+			"triplos {",
+			"\t${2:Concept} = is-a => ${2:Concept}",
+			"}."
+		]
+	}
+}
