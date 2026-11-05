@@ -85,6 +85,7 @@ import {
 	TypeContext
 } from './generated/OntoDLPlusParser.js';
 import { OntoDLPlusListener } from './generated/OntoDLPlusListener.js';
+import { expandSource } from './expand.js';
 import {
 	type AttributeSymbol,
 	type AttributeType,
@@ -534,9 +535,11 @@ class DiagnosticListener
 	}
 }
 
-export function analyze(source: string): AnalysisResult {
-	const listener = new DiagnosticListener(source);
-	const lexer = new OntoDLPlusLexer(CharStream.fromString(source));
+export function analyze(source: string, filePath?: string): AnalysisResult {
+	const expanded = filePath ? expandSource(source, filePath) : undefined;
+	const text = expanded?.text ?? source;
+	const listener = new DiagnosticListener(text);
+	const lexer = new OntoDLPlusLexer(CharStream.fromString(text));
 	lexer.removeErrorListeners();
 	lexer.addErrorListener(listener);
 
@@ -550,11 +553,77 @@ export function analyze(source: string): AnalysisResult {
 	const ontoListener = new DiagnosticSem();
 
 	pw.walk(ontoListener, tree);
-	ontoListener.diagnostics.sort((left, right) => left.start - right.start);
-
-	return {
+	const result: AnalysisResult = {
 		diagnostics: listener.diagnostics,
 		semanticDiagnostics: ontoListener.diagnostics,
 		symbols: ontoListener.symbols()
 	};
+	if (!expanded) {
+		result.semanticDiagnostics.sort(byStart);
+		return result;
+	}
+
+	for (const diagnostic of result.diagnostics) {
+		place(diagnostic, expanded.mapSpan);
+	}
+	for (const diagnostic of result.semanticDiagnostics) {
+		place(diagnostic, expanded.mapSpan);
+	}
+	result.semanticDiagnostics.push(...expanded.problems);
+	const table = result.symbols;
+	if (table.ontology) {
+		place(table.ontology, expanded.mapSpan);
+		table.ontology.nameStart = expanded.mapPoint(
+			table.ontology.nameStart
+		);
+		table.ontology.nameEnd = expanded.mapPoint(table.ontology.nameEnd);
+	}
+	for (const section of table.sections) {
+		place(section, expanded.mapSpan);
+	}
+	for (const symbol of [
+		...table.attributes.values(),
+		...table.concepts.values(),
+		...table.individuals.values(),
+		...table.relations.values()
+	]) {
+		place(symbol, expanded.mapSpan);
+	}
+	table.uses = table.uses.flatMap((use) => {
+		const imported = place(use, expanded.mapSpan);
+		return imported ? [] : [use];
+	});
+	result.diagnostics.sort(byStart);
+	result.semanticDiagnostics.sort(byStart);
+	return result;
+}
+
+function place(
+	span: { start: number; end: number; imported?: boolean; message?: string },
+	mapSpan: (start: number, end: number) => {
+		start: number;
+		end: number;
+		imported?: boolean;
+		file?: string;
+	}
+): boolean {
+	const mapped = mapSpan(span.start, span.end);
+	span.start = mapped.start;
+	span.end = mapped.end;
+	if (!mapped.imported) {
+		return false;
+	}
+	if (span.message && mapped.file) {
+		span.message = `${mapped.file}: ${span.message}`;
+	} else {
+		span.imported = true;
+	}
+	return true;
+}
+
+function byStart(
+	left: { start: number },
+	right: { start: number }
+): number {
+	return left.start - right.start;
 }
