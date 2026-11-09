@@ -30,6 +30,9 @@
 		"vscode": "^1.100.0"
 	},
 	"main": "./client/out/extension",
+	"activationEvents": [
+        "onLanguage:ontodlp"
+    ],
 	"contributes": {
 		"configuration": {
 			"type": "object",
@@ -60,14 +63,7 @@
 				]
 			}
 		],
-		"grammars": [
-			{
-				"language": "ontodlp",
-				"scopeName": "source.ontodlp",
-				"path": "./syntaxes/ontodlp.tmLanguage.json",
-				"configuration": "./language-configuration.json"
-			}
-		],
+		"grammars": [],
 		"snippets": [
 			{
 				"language": "ontodlp",

@@ -24,6 +24,7 @@ import {
 	ProposedFeatures,
 	ResponseError,
 	SymbolKind,
+	SemanticTokensBuilder,
 	TextDocumentSyncKind,
 	WorkspaceEdit,
 	type DocumentDiagnosticReport,
@@ -40,6 +41,9 @@ import {
 	completions,
 	describe,
 	emptySymbolTable,
+	highlightTokens,
+	semanticTokenModifiers,
+	semanticTokenTypes,
 	outline,
 	references,
 	renameRejection,
@@ -68,6 +72,13 @@ connection.onInitialize((params: InitializeParams) => {
 	const result: InitializeResult = {
 		capabilities: {
 			textDocumentSync: TextDocumentSyncKind.Incremental,
+			semanticTokensProvider: {
+				legend: {
+					tokenTypes: [...semanticTokenTypes],
+					tokenModifiers: [...semanticTokenModifiers]
+				},
+				full: true
+			},
 			completionProvider: {
 				resolveProvider: false
 			},
@@ -101,6 +112,34 @@ connection.onInitialized(() => {
 			connection.console.log('Workspace folder change event received.');
 		});
 	}
+});
+
+// Highlight original document offsets, not locations in expanded imports.
+connection.languages.semanticTokens.on((params) => {
+	const document = documents.get(params.textDocument.uri);
+	if (!document) {
+		return { data: [] };
+	}
+	const source = document.getText();
+	let symbols;
+	try {
+		// Reuse parser symbol categories without expanding files.
+		symbols = analyze(source).symbols;
+	} catch {
+		// Lexical highlighting remains available while the user is typing.
+	}
+	const builder = new SemanticTokensBuilder();
+	for (const token of highlightTokens(source, symbols)) {
+		const position = document.positionAt(token.start);
+		builder.push(
+			position.line,
+			position.character,
+			token.end - token.start,
+			semanticTokenTypes.indexOf(token.type),
+			token.declaration ? 1 : 0
+		);
+	}
+	return builder.build();
 });
 
 connection.languages.diagnostics.on((params) => {
