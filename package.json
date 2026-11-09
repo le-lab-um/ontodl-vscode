@@ -67,7 +67,7 @@
 			{
 				"language": "ontodlp",
 				"scopeName": "source.ontodlp",
-				"path": "./syntaxes/ontodlp.tmLanguage.json",
+				"path": "./client/syntaxes/ontodlp.tmLanguage.json",
 				"configuration": "./language-configuration.json"
 			}
 		]
