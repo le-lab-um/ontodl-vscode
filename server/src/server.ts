@@ -31,6 +31,8 @@ import {
 	type Position
 } from 'vscode-languageserver/node';
 
+import { fileURLToPath } from 'node:url';
+
 import {
 	TextDocument
 } from 'vscode-languageserver-textdocument';
@@ -164,8 +166,16 @@ connection.languages.diagnostics.on((params) => {
  * line-and-character positions. Keeping this conversion here prevents the
  * language package from depending on VS Code or the LSP protocol.
  */
+function analysisOf(document: TextDocument) {
+	const text = document.getText();
+	if (!document.uri.startsWith('file:')) {
+		return analyze(text);
+	}
+	return analyze(text, fileURLToPath(document.uri));
+}
+
 function validateTextDocument(textDocument: TextDocument): Diagnostic[] {
-	const result = analyze(textDocument.getText());
+	const result = analysisOf(textDocument);
 
 	const allDiagnostics = result.diagnostics.concat(
 		result.semanticDiagnostics
@@ -196,7 +206,7 @@ connection.onDidChangeWatchedFiles(() => {
 connection.onCompletion((params): CompletionItem[] => {
 	const document = documents.get(params.textDocument.uri);
 	const table = document
-		? analyze(document.getText()).symbols
+		? analysisOf(document).symbols
 		: emptySymbolTable();
 	return completions(table).map((entry) => {
 		const item: CompletionItem = {
@@ -245,7 +255,7 @@ connection.onReferences((params): Location[] | null => {
 		return null;
 	}
 	const spans = references(
-		analyze(document.getText()).symbols,
+		analysisOf(document).symbols,
 		document.offsetAt(params.position),
 		params.context.includeDeclaration
 	);
@@ -277,7 +287,7 @@ connection.onRenameRequest((params): WorkspaceEdit => {
 			'Document is not open'
 		);
 	}
-	const table = analyze(document.getText()).symbols;
+	const table = analysisOf(document).symbols;
 	const offset = document.offsetAt(params.position);
 	const problem = renameRejection(table, offset, params.newName);
 	if (problem) {
@@ -299,7 +309,7 @@ connection.onDocumentSymbol((params): DocumentSymbol[] => {
 	if (!document) {
 		return [];
 	}
-	return outline(analyze(document.getText()).symbols)
+	return outline(analysisOf(document).symbols)
 		.map(node => toDocumentSymbol(document, node));
 });
 
@@ -310,7 +320,7 @@ connection.onFoldingRanges((params): FoldingRange[] => {
 	}
 	return foldingRanges(
 		document,
-		outline(analyze(document.getText()).symbols)
+		outline(analysisOf(document).symbols)
 	);
 });
 
@@ -320,7 +330,7 @@ function locate(uri: string, position: Position): LocatedSymbol | undefined {
 		return undefined;
 	}
 	const hit = symbolAt(
-		analyze(document.getText()).symbols,
+		analysisOf(document).symbols,
 		document.offsetAt(position)
 	);
 	if (!hit) {

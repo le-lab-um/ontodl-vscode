@@ -29,9 +29,6 @@
 	"engines": {
 		"vscode": "^1.100.0"
 	},
-	"activationEvents": [
-		"onLanguage:ontodlp"
-	],
 	"main": "./client/out/extension",
 	"contributes": {
 		"configuration": {
@@ -63,12 +60,22 @@
 				]
 			}
 		],
-		"grammars": [
+		"grammars": [],
+		"snippets": [
 			{
 				"language": "ontodlp",
-				"scopeName": "source.ontodlp",
-				"path": "./client/syntaxes/ontodlp.tmLanguage.json",
-				"configuration": "./language-configuration.json"
+				"path": "./snippets/ontodlp.json"
+			}
+		],
+		"keybindings": [
+			{
+				"command": "editor.action.insertSnippet",
+				"key": "ctrl+alt+o",
+				"mac": "cmd+alt+o",
+				"when": "editorTextFocus && !editorReadonly && editorLangId == ontodlp",
+				"args": {
+					"name": "Ontology skeleton"
+				}
 			}
 		]
 	},
