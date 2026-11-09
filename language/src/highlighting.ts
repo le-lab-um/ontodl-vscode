@@ -96,10 +96,18 @@ export function highlightTokens(
 		for (const use of symbols.uses) {
 			let type: HighlightType;
 			switch (use.kind) {
-				case 'concept': type = 'class'; break;
-				case 'individual': type = 'enumMember'; break;
-				case 'relation': type = 'function'; break;
-				case 'attribute': type = 'property'; break;
+				case 'concept':
+					type = 'class';
+					break;
+				case 'individual':
+					type = 'enumMember';
+					break;
+				case 'relation':
+					type = 'function';
+					break;
+				case 'attribute':
+					type = 'property';
+					break;
 				case 'entity': {
 					const concept = symbols.concepts.has(use.name);
 					const individual = symbols.individuals.has(use.name);
@@ -131,8 +139,9 @@ export function highlightTokens(
 		let type: HighlightType | undefined;
 		let declaration = false;
 		if (token.type === OntoDLPlusLexer.IDENTIFIER) {
-			type = declarations.get(token.start)
-				?? uses.get(token.start) ?? 'variable';
+			const declaredType = declarations.get(token.start);
+			const usedType = uses.get(token.start);
+			type = declaredType ?? usedType ?? 'variable';
 			declaration = declarations.has(token.start);
 		} else if (token.type === OntoDLPlusLexer.STRING) {
 			type = 'string';
@@ -173,7 +182,7 @@ export function highlightTokens(
 	const examineGap = (start: number, end: number): void => {
 		for (let i = start; i < end; i++) {
 			const char = source[i];
-			if (char !== '%' && char !== '"' && char !== "'") {
+			if (char !== '%' && char !== '"' && char !== '\'') {
 				continue;
 			}
 			let lineEnd = i;
@@ -202,7 +211,7 @@ export function highlightTokens(
 		return specialIndex >= special.length
 			|| token.end <= special[specialIndex].start;
 	});
-	return [...visible, ...special].sort((a, b) =>
+	return [...visible, ...special].toSorted((a, b) =>
 		a.start - b.start || a.end - b.end
 	);
 }
