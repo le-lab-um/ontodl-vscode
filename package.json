@@ -64,7 +64,7 @@
 			{
 				"language": "ontodlp",
 				"scopeName": "source.ontodlp",
-				"path": "./syntaxes/ontodlp.tmLanguage.json",
+				"path": "./client/syntaxes/ontodlp.tmLanguage.json",
 				"configuration": "./language-configuration.json"
 			}
 		],
@@ -87,7 +87,8 @@
 		]
 	},
 	"scripts": {
-		"vscode:prepublish": "npm run compile",
+		"vscode:prepublish": "npm run compile && npm run bundle",
+		"bundle": "esbuild server/src/server.ts --bundle --platform=node --format=cjs --outfile=server/out/server.js",
 		"compile": "npm run generate && tsc -b",
 		"generate": "cd language && npm run generate",
 		"watch": "tsc -b -w",
@@ -104,6 +105,7 @@
 		"@stylistic/eslint-plugin": "^2.9.0",
 		"@types/mocha": "^10.0.6",
 		"@types/node": "^22",
+		"esbuild": "^0.25.11",
 		"eslint": "^9.13.0",
 		"eslint-plugin-oxlint": "^1.88.0",
 		"knip": "^6.41.0",
