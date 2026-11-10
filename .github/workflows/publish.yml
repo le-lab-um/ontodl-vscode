@@ -1,0 +1,64 @@
+name: Publish
+
+# Publishes le-lab-um.ontodlplus. A release tag must match package.json
+# (v0.1.0 or 0.1.0) and the tagged commit must already be on main.
+# Marketplace auth is Trusted Publishing (OIDC) for this file: owner
+# le-lab-um, repository ontodl-vscode, workflow publish.yml, no environment.
+
+on:
+  release:
+    types:
+      - published
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: marketplace-publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Require the commit to be on main
+        run: |
+          git fetch origin main
+          git merge-base --is-ancestor HEAD origin/main
+
+      - name: Install Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: "**/package-lock.json"
+
+      - name: Check the release tag matches the extension version
+        if: github.event_name == 'release'
+        run: |
+          version="$(node -p "require('./package.json').version")"
+          tag="${GITHUB_REF_NAME#v}"
+          if [ "$version" != "$tag" ]; then
+            echo "package.json is ${version} but the release tag is ${GITHUB_REF_NAME}"
+            exit 1
+          fi
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Publish to the Visual Studio Marketplace
+        env:
+          PRERELEASE: ${{ github.event.release.prerelease == true }}
+        run: |
+          if [ "$PRERELEASE" = "true" ]; then
+            npx --yes @vscode/vsce@4.1.0 publish --oidc --pre-release
+          else
+            npx --yes @vscode/vsce@4.1.0 publish --oidc
+          fi
