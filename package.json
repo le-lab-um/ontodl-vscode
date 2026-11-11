@@ -30,6 +30,9 @@
 		"vscode": "^1.100.0"
 	},
 	"main": "./client/out/extension",
+	"activationEvents": [
+		"onLanguage:ontodlp"
+	],
 	"contributes": {
 		"configuration": {
 			"type": "object",
@@ -57,7 +60,8 @@
 				],
 				"extensions": [
 					".odlp"
-				]
+				],
+				"configuration": "./language-configuration.json"
 			}
 		],
 		"grammars": [
