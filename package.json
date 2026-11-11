@@ -79,7 +79,7 @@
 				"command": "ontodl.showGraph",
 				"title": "Show Graph",
 				"category": "OntoDL+",
-				"icon": "$(type-hierarchy)"
+				"icon": "$(graph)"
 			}
 		],
 		"menus": {

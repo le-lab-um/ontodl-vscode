@@ -1,7 +1,6 @@
 import {
 	commands,
 	type ExtensionContext,
-	ViewColumn,
 	window,
 	workspace
 } from 'vscode';
@@ -39,11 +38,10 @@ async function show(
 			language: 'markdown',
 			content: markdown
 		});
-		await window.showTextDocument(diagram, {
-			viewColumn: ViewColumn.Beside,
-			preview: true
-		});
-		await commands.executeCommand('markdown.showPreview', diagram.uri);
+		await commands.executeCommand(
+			'markdown.showPreviewToSide',
+			diagram.uri
+		);
 	} catch (error) {
 		const message = error instanceof Error
 			? error.message
