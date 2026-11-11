@@ -74,6 +74,36 @@
 				"path": "./snippets/ontodlp.json"
 			}
 		],
+		"commands": [
+			{
+				"command": "ontodl.showGraph",
+				"title": "Show Graph",
+				"category": "OntoDL+",
+				"icon": "$(type-hierarchy)"
+			}
+		],
+		"menus": {
+			"commandPalette": [
+				{
+					"command": "ontodl.showGraph",
+					"when": "editorLangId == ontodlp"
+				}
+			],
+			"editor/title": [
+				{
+					"command": "ontodl.showGraph",
+					"when": "editorLangId == ontodlp",
+					"group": "navigation"
+				}
+			],
+			"editor/context": [
+				{
+					"command": "ontodl.showGraph",
+					"when": "editorLangId == ontodlp",
+					"group": "navigation"
+				}
+			]
+		},
 		"keybindings": [
 			{
 				"command": "editor.action.insertSnippet",
