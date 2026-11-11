@@ -1,0 +1,106 @@
+import * as assert from 'node:assert/strict';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
+import { describe, test } from 'node:test';
+
+import { ontologyGraph } from '../graph';
+import { analyze } from '../index';
+
+function fixture(name: string): string {
+	const fixturePath = path.resolve(__dirname, '../../test/fixtures', name);
+	return fs.readFileSync(fixturePath, 'utf8');
+}
+
+function diagramOf(source: string): string {
+	return ontologyGraph(analyze(source).symbols);
+}
+
+function arrows(diagram: string): string[] {
+	return [...diagram.matchAll(/\|"([^"]*)"\|/g)].map(match => match[1]);
+}
+
+describe('OntoDL+ graph', () => {
+	test('records one fact for each object in a group', () => {
+		const source = `Ontology demo
+conceitos { C }
+individuos { aa, bb, cc }
+relacoes { r }
+triplos { aa =[ iof => C; r => bb, cc ] }
+.`;
+		const facts = analyze(source).symbols.facts;
+
+		assert.deepEqual(
+			facts.map(fact => [
+				fact.subject,
+				fact.builtin ?? fact.relation,
+				fact.object
+			]),
+			[
+				['aa', 'iof', 'C'],
+				['aa', 'r', 'bb'],
+				['aa', 'r', 'cc']
+			]
+		);
+	});
+
+	test('draws each concept, individual, and value as its own node', () => {
+		const diagram = diagramOf(fixture('mapaWithProps.odlp'));
+
+		assert.equal(diagram.includes('subgraph'), false);
+		assert.ok(diagram.includes('(("Cidade"))'));
+		assert.ok(diagram.includes('(("Ligação"))'));
+		assert.ok(diagram.includes('["brg"]'));
+		assert.ok(diagram.includes('["lig-ptl-bcl"]'));
+		assert.ok(diagram.includes('["nome=Braga"]'));
+		assert.ok(diagram.includes('["população=140000"]'));
+		assert.ok(diagram.includes('["distância=19"]'));
+		assert.ok(arrows(diagram).includes('iof'));
+		assert.ok(arrows(diagram).includes('temDestino'));
+		assert.ok(arrows(diagram).includes('temOrigem'));
+		assert.ok(arrows(diagram).includes('properties'));
+	});
+
+	test('keeps separate targets from a grouped triple', () => {
+		const diagram = diagramOf(fixture('mapaWithGroup.odlp'));
+		const braga = diagram.match(/(\w+)\["brg"\]/)?.[1];
+		const origins = diagram.split('\n').filter(line =>
+			line.includes(`${braga} -->|`) && line.includes('éOrigemDe')
+		);
+
+		assert.equal(origins.length, 3);
+	});
+
+	test('draws a triple and skips a relation that has none', () => {
+		const diagram = diagramOf(`Ontology demo
+conceitos { A, B, C }
+relacoes {
+    r[domain: A, codomain: B, props: inversaDe=s],
+    s[domain: B, codomain: A],
+    t
+}
+triplos { A = is-a => B }
+.`);
+
+		assert.match(diagram, /^# demo/);
+		assert.deepEqual(arrows(diagram), ['is-a']);
+	});
+
+	test('draws both directions when both triples are written', () => {
+		const diagram = diagramOf(`Ontology demo
+conceitos { A, B }
+individuos { aa, bb }
+relacoes {
+    r[domain: A, codomain: B, props: inversaDe=s],
+    s[domain: B, codomain: A]
+}
+triplos {
+    aa = iof => A;
+    bb = iof => B;
+    aa = r => bb;
+    bb = s => aa
+}
+.`);
+
+		assert.deepEqual(arrows(diagram), ['iof', 'iof', 'r', 's']);
+	});
+});
