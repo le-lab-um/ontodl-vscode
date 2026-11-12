@@ -16,7 +16,8 @@ function diagramOf(source: string): string {
 }
 
 function arrows(diagram: string): string[] {
-	return [...diagram.matchAll(/\|"([^"]*)"\|/g)].map(match => match[1]);
+	return [...diagram.matchAll(/-> \w+ \[label="([^"]*)"\]/g)]
+		.map(match => match[1]);
 }
 
 describe('OntoDL+ graph', () => {
@@ -47,13 +48,13 @@ triplos { aa =[ iof => C; r => bb, cc ] }
 		const diagram = diagramOf(fixture('mapaWithProps.odlp'));
 
 		assert.equal(diagram.includes('subgraph'), false);
-		assert.ok(diagram.includes('(("Cidade"))'));
-		assert.ok(diagram.includes('(("Ligação"))'));
-		assert.ok(diagram.includes('["brg"]'));
-		assert.ok(diagram.includes('["lig-ptl-bcl"]'));
-		assert.ok(diagram.includes('["nome=Braga"]'));
-		assert.ok(diagram.includes('["população=140000"]'));
-		assert.ok(diagram.includes('["distância=19"]'));
+		assert.ok(diagram.includes('[label="Cidade", shape=ellipse]'));
+		assert.ok(diagram.includes('[label="Ligação", shape=ellipse]'));
+		assert.ok(diagram.includes('[label="brg", shape=box]'));
+		assert.ok(diagram.includes('[label="lig-ptl-bcl", shape=box]'));
+		assert.ok(diagram.includes('[label="nome=Braga", shape=box]'));
+		assert.ok(diagram.includes('[label="população=140000", shape=box]'));
+		assert.ok(diagram.includes('[label="distância=19", shape=box]'));
 		assert.ok(arrows(diagram).includes('iof'));
 		assert.ok(arrows(diagram).includes('temDestino'));
 		assert.ok(arrows(diagram).includes('temOrigem'));
@@ -62,9 +63,11 @@ triplos { aa =[ iof => C; r => bb, cc ] }
 
 	test('keeps separate targets from a grouped triple', () => {
 		const diagram = diagramOf(fixture('mapaWithGroup.odlp'));
-		const braga = diagram.match(/(\w+)\["brg"\]/)?.[1];
+		const braga = diagram.match(
+			/(\w+) \[label="brg", shape=box\]/
+		)?.[1];
 		const origins = diagram.split('\n').filter(line =>
-			line.includes(`${braga} -->|`) && line.includes('éOrigemDe')
+			line.startsWith(`  ${braga} ->`) && line.includes('éOrigemDe')
 		);
 
 		assert.equal(origins.length, 3);
@@ -81,7 +84,8 @@ relacoes {
 triplos { A = is-a => B }
 .`);
 
-		assert.match(diagram, /^# demo/);
+		assert.match(diagram, /^digraph \{/);
+		assert.match(diagram, /label="demo"/);
 		assert.deepEqual(arrows(diagram), ['is-a']);
 	});
 
