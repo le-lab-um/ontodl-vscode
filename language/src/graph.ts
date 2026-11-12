@@ -1,11 +1,16 @@
-// Mermaid draws the picture in the editor preview. A concept is an
-// ellipse, an individual is a box, and a value is a box. An arrow is
-// iof, a triple, or a property value.
+// Graphviz dot draws the picture. A concept is an ellipse, an
+// individual is a box, and a value is a box. An arrow is iof, a
+// triple, or a property value.
 
 import { type SymbolTable } from './symbols.js';
 
 export function ontologyGraph(table: SymbolTable): string {
-	const lines = ['flowchart LR'];
+	const lines = ['digraph {'];
+	const name = table.ontology?.name;
+	if (name) {
+		lines.push(`  label="${text(name)}";`, '  labelloc=t;');
+	}
+	lines.push('  rankdir=LR;');
 	const ids = new Map<string, string>();
 	let next = 0;
 	const node = (key: string): string => {
@@ -21,11 +26,15 @@ export function ontologyGraph(table: SymbolTable): string {
 
 	for (const concept of table.concepts.values()) {
 		const id = node(`concept:${concept.name}`);
-		lines.push(`  ${id}(("${text(concept.name)}"))`);
+		lines.push(
+			`  ${id} [label="${text(concept.name)}", shape=ellipse];`
+		);
 	}
 	for (const individual of table.individuals.values()) {
 		const id = node(`individual:${individual.name}`);
-		lines.push(`  ${id}["${text(individual.name)}"]`);
+		lines.push(
+			`  ${id} [label="${text(individual.name)}", shape=box];`
+		);
 	}
 	for (const fact of table.facts) {
 		const from = endpoint(table, fact.subject);
@@ -34,7 +43,9 @@ export function ontologyGraph(table: SymbolTable): string {
 			continue;
 		}
 		const label = text(fact.relation);
-		lines.push(`  ${node(from)} -->|"${label}"| ${node(to)}`);
+		lines.push(
+			`  ${node(from)} -> ${node(to)} [label="${label}"];`
+		);
 	}
 	for (const item of table.assignments) {
 		const from = endpoint(table, item.owner);
@@ -43,13 +54,14 @@ export function ontologyGraph(table: SymbolTable): string {
 		}
 		const id = node(`value:${item.start}`);
 		const label = text(`${item.attribute}=${item.value}`);
-		lines.push(`  ${id}["${label}"]`);
-		lines.push(`  ${node(from)} -->|"properties"| ${id}`);
+		lines.push(`  ${id} [label="${label}", shape=box];`);
+		lines.push(
+			`  ${node(from)} -> ${id} [label="properties"];`
+		);
 	}
 
-	const diagram = ['```mermaid', ...lines, '```'].join('\n');
-	const title = table.ontology?.name;
-	return title ? `# ${title}\n\n${diagram}\n` : `${diagram}\n`;
+	lines.push('}');
+	return `${lines.join('\n')}\n`;
 }
 
 function endpoint(table: SymbolTable, name: string): string | undefined {
@@ -63,5 +75,5 @@ function endpoint(table: SymbolTable, name: string): string | undefined {
 }
 
 function text(value: string): string {
-	return value.replaceAll('"', '#quot;').replaceAll('|', '/');
+	return value.replaceAll('\\', '\\\\').replaceAll('"', '\\"');
 }
