@@ -6,6 +6,7 @@ import { describe, test } from 'node:test';
 import { analyze } from '../index';
 import {
 	completions,
+	hoverMarkdown,
 	outline,
 	references,
 	renameRejection,
@@ -17,8 +18,8 @@ function fixture(name: string): string {
 	return fs.readFileSync(fixturePath, 'utf8');
 }
 
-describe('OntoDL+ symbol table', () => {
-	test('stores declarations with their positions', () => {
+void describe('OntoDL+ symbol table', () => {
+	void test('stores declarations with their positions', () => {
 		const source = fixture('mapaWithProps.odlp');
 		const symbols = analyze(source).symbols;
 
@@ -43,7 +44,7 @@ describe('OntoDL+ symbol table', () => {
 		});
 	});
 
-	test('keeps the first declaration when a name is repeated', () => {
+	void test('keeps the first declaration when a name is repeated', () => {
 		const source = `Ontology demo
 conceitos { City, City }
 relacoes { links }
@@ -57,7 +58,7 @@ triplos { City = links => City }
 		);
 	});
 
-	test('resolves a name used in a triple to its declaration', () => {
+	void test('resolves a name used in a triple to its declaration', () => {
 		const source = fixture('mapa.odlp');
 		const symbols = analyze(source).symbols;
 		const use = source.indexOf('=> Cidade');
@@ -69,7 +70,7 @@ triplos { City = links => City }
 		assert.equal(hit?.symbol.start, source.indexOf('Cidade'));
 	});
 
-	test('resolves an attribute reference to its declaration', () => {
+	void test('resolves an attribute reference to its declaration', () => {
 		const source = `Ontology demo
 atributos { n: int }
 conceitos { C[n] }
@@ -88,7 +89,33 @@ triplos { C = r => C }
 		);
 	});
 
-	test('builds an outline of sections and declarations', () => {
+	void test('builds the Markdown hover', () => {
+		const symbols = analyze(fixture('mapa.odlp')).symbols;
+		const individual = symbols.individuals.get('lig-ptl-brg');
+		assert.ok(individual);
+
+		assert.equal(
+			hoverMarkdown(individual, symbols),
+			[
+				'`lig-ptl-brg`',
+				'',
+				'Indivíduo',
+				'',
+				'Tipo: Ligação',
+				'',
+				'**Atributos**',
+				'',
+				'- `distância`: 31',
+				'',
+				'**Relações**',
+				'',
+				'- `temOrigem`: `ptl`',
+				'- `temDestino`: `brg`'
+			].join('\n')
+		);
+	});
+
+	void test('builds an outline of sections and declarations', () => {
 		const source = fixture('mapa.odlp');
 		const root = outline(analyze(source).symbols)[0];
 
@@ -113,7 +140,7 @@ triplos { C = r => C }
 		assert.ok(city.start >= concepts.start && city.end <= concepts.end);
 	});
 
-	test('offers keywords and declared names', () => {
+	void test('offers keywords and declared names', () => {
 		const source = `Ontology demo
 conceitos { City }
 relacoes { links }
@@ -129,7 +156,7 @@ triplos { City = links => City }
 		assert.equal(labels.includes('TypeScript'), false);
 	});
 
-	test('lists the declaration and every use of a name', () => {
+	void test('lists the declaration and every use of a name', () => {
 		const source = `Ontology demo
 atributos { distance: int }
 conceitos { City[distance] }
@@ -166,7 +193,7 @@ triplos { braga = links => City[distance=1] }
 		assert.equal(references(symbols, source.indexOf('triplos')), undefined);
 	});
 
-	test('rejects a rename that is not an identifier', () => {
+	void test('rejects a rename that is not an identifier', () => {
 		const source = `Ontology demo
 conceitos { City }
 relacoes { links }
