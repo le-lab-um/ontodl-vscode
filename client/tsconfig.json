@@ -2,9 +2,11 @@
 	"compilerOptions": {
 		"module": "commonjs",
 		"target": "ES2024",
+		"types": ["node"],
 		"lib": [
 			"ES2024"
 		],
+
 		"outDir": "out",
 		"rootDir": "src",
 		"sourceMap": true,

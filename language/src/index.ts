@@ -41,6 +41,7 @@ export {
 	describe,
 	emptySymbolTable,
 	formatType,
+	hoverMarkdown,
 	outline,
 	references,
 	renameRejection,
