@@ -1,6 +1,6 @@
 # OntoDL+
 
-Language support for OntoDL+ ontologies in VS Code. Open a `.odlp` file to get diagnostics, completion, hover, go to definition, find references, rename, an outline, and folding.
+Language support for OntoDL+ ontologies in VS Code. Open a `.odlp` file to get diagnostics, completion, hover, go to definition, find references, rename, an outline, folding, and a graph of the ontology.
 
 ## Development
 

@@ -14,11 +14,14 @@ export interface AnalysisResult {
 }
 
 export type {
+	Assignment,
 	AttributeSymbol,
 	AttributeType,
+	BuiltinLink,
 	CompletionEntry,
 	ConceptSymbol,
 	DeclaredSymbol,
+	Fact,
 	IndividualSymbol,
 	NameUse,
 	OntologySymbol,
@@ -44,6 +47,8 @@ export {
 	symbolAt
 } from './symbols.js';
 
+export { ontologyGraph } from './graph.js';
+
 import {
 	ANTLRErrorListener,
 	ATNSimulator,
@@ -62,6 +67,7 @@ import { OntoDLPlusLexer } from './generated/OntoDLPlusLexer.js';
 import {
 	AttributeDeclarationContext,
 	AttributeInstanceContext,
+	AttributeInstancesContext,
 	AttributeReferenceContext,
 	AttributesSectionContext,
 	AtomContext,
@@ -87,9 +93,12 @@ import {
 import { OntoDLPlusListener } from './generated/OntoDLPlusListener.js';
 import { expandSource } from './expand.js';
 import {
+	type Assignment,
 	type AttributeSymbol,
 	type AttributeType,
+	type BuiltinLink,
 	type ConceptSymbol,
+	type Fact,
 	type IndividualSymbol,
 	type NameUse,
 	type OntologySymbol,
@@ -114,6 +123,11 @@ class DiagnosticSem extends OntoDLPlusListener {
 	public readonly attributes = new Map<string, AttributeSymbol>();
 	public readonly sections: SectionSymbol[] = [];
 	public readonly uses: NameUse[] = [];
+	public readonly facts: Fact[] = [];
+	public readonly assignments: Assignment[] = [];
+
+	private readonly factKeys = new Set<string>();
+	private readonly assignmentKeys = new Set<string>();
 
 	public ontology?: OntologySymbol;
 
@@ -321,6 +335,43 @@ class DiagnosticSem extends OntoDLPlusListener {
 		}
 	};
 
+	public override exitTriple = (ctx: TripleContext): void => {
+		if (ctx.relationship().length > 0) {
+			return;
+		}
+		const subject = ctx.IDENTIFIER(0);
+		const relation = ctx.tripleRelation();
+		const object = ctx.IDENTIFIER(1);
+		if (!subject || !relation || !object) {
+			return;
+		}
+		this.recordFact(subject, relation, object);
+		if (builtinLink(relation) === 'iof') {
+			this.recordAssignments(subject, ctx.attributeInstances());
+		}
+	};
+
+	public override exitRelationship = (
+		ctx: RelationshipContext
+	): void => {
+		if (!(ctx.parent instanceof TripleContext)) {
+			return;
+		}
+		const subject = ctx.parent.IDENTIFIER(0);
+		const relation = ctx.tripleRelation();
+		const object = ctx.IDENTIFIER();
+		if (!subject || !relation || !object) {
+			return;
+		}
+		this.recordFact(subject, relation, object);
+		if (builtinLink(relation) === 'iof') {
+			this.recordAssignments(subject, ctx.attributeInstances());
+		}
+		for (const extra of ctx.groupedObject()) {
+			this.recordFact(subject, relation, extra.IDENTIFIER());
+		}
+	};
+
 	public override enterTripleRelation = (
 		ctx: TripleRelationContext
 	): void => {
@@ -373,8 +424,64 @@ class DiagnosticSem extends OntoDLPlusListener {
 			relations: this.relations,
 			attributes: this.attributes,
 			sections: this.sections,
-			uses: this.uses
+			uses: this.uses,
+			facts: this.facts,
+			assignments: this.assignments
 		};
+	}
+
+	private recordAssignments(
+		owner: TerminalNode,
+		instances: AttributeInstancesContext | null
+	): void {
+		if (!instances) {
+			return;
+		}
+		for (const item of instances.attributeInstance()) {
+			const id = item.IDENTIFIER();
+			const atom = item.atom();
+			if (!atom) {
+				continue;
+			}
+			const value = writtenValue(atom);
+			const key = `${owner.getText()}\0${id.getText()}\0${value}`;
+			if (this.assignmentKeys.has(key)) {
+				continue;
+			}
+			this.assignmentKeys.add(key);
+			const end = atom.stop?.stop ?? id.getSymbol().stop;
+			this.assignments.push({
+				owner: owner.getText(),
+				attribute: id.getText(),
+				value,
+				start: id.getSymbol().start,
+				end: end + 1
+			});
+		}
+	}
+
+	private recordFact(
+		subject: TerminalNode,
+		relation: TripleRelationContext,
+		object: TerminalNode
+	): void {
+		const name = relationText(relation);
+		if (!name) {
+			return;
+		}
+		const key = `${subject.getText()}\0${name}\0${object.getText()}`;
+		if (this.factKeys.has(key)) {
+			return;
+		}
+		this.factKeys.add(key);
+		this.facts.push({
+			subject: subject.getText(),
+			relation: name,
+			object: object.getText(),
+			builtin: builtinLink(relation),
+			start: subject.getSymbol().start,
+			end: object.getSymbol().stop + 1
+		});
 	}
 
 	private checkEntity(id: TerminalNode): void {
@@ -589,6 +696,12 @@ export function analyze(source: string, filePath?: string): AnalysisResult {
 	]) {
 		place(symbol, expanded.mapSpan);
 	}
+	for (const fact of table.facts) {
+		place(fact, expanded.mapSpan);
+	}
+	for (const assignment of table.assignments) {
+		place(assignment, expanded.mapSpan);
+	}
 	table.uses = table.uses.flatMap((use) => {
 		const imported = place(use, expanded.mapSpan);
 		return imported ? [] : [use];
@@ -626,4 +739,45 @@ function byStart(
 	right: { start: number }
 ): number {
 	return left.start - right.start;
+}
+
+function writtenValue(atom: AtomContext): string {
+	const value = atom.getText();
+	if (
+		value.length >= 2
+		&& value.startsWith('"')
+		&& value.endsWith('"')
+	) {
+		return value.slice(1, -1);
+	}
+	return value;
+}
+
+function relationText(relation: TripleRelationContext): string | undefined {
+	const keyword = relation.iofKeyword()
+		?? relation.isaKeyword()
+		?? relation.pofKeyword()
+		?? relation.synonymKeyword();
+	if (keyword) {
+		return keyword.getText();
+	}
+	return relation.IDENTIFIER()?.getText();
+}
+
+function builtinLink(
+	relation: TripleRelationContext
+): BuiltinLink | undefined {
+	if (relation.iofKeyword()) {
+		return 'iof';
+	}
+	if (relation.isaKeyword()) {
+		return 'isa';
+	}
+	if (relation.pofKeyword()) {
+		return 'pof';
+	}
+	if (relation.synonymKeyword()) {
+		return 'synonym';
+	}
+	return undefined;
 }

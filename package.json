@@ -30,6 +30,9 @@
 		"vscode": "^1.100.0"
 	},
 	"main": "./client/out/extension",
+	"activationEvents": [
+		"onLanguage:ontodlp"
+	],
 	"contributes": {
 		"configuration": {
 			"type": "object",
@@ -57,7 +60,8 @@
 				],
 				"extensions": [
 					".odlp"
-				]
+				],
+				"configuration": "./language-configuration.json"
 			}
 		],
 		"grammars": [
@@ -74,6 +78,36 @@
 				"path": "./snippets/ontodlp.json"
 			}
 		],
+		"commands": [
+			{
+				"command": "ontodl.showGraph",
+				"title": "Show Graph",
+				"category": "OntoDL+",
+				"icon": "$(graph)"
+			}
+		],
+		"menus": {
+			"commandPalette": [
+				{
+					"command": "ontodl.showGraph",
+					"when": "editorLangId == ontodlp"
+				}
+			],
+			"editor/title": [
+				{
+					"command": "ontodl.showGraph",
+					"when": "editorLangId == ontodlp",
+					"group": "navigation"
+				}
+			],
+			"editor/context": [
+				{
+					"command": "ontodl.showGraph",
+					"when": "editorLangId == ontodlp",
+					"group": "navigation"
+				}
+			]
+		},
 		"keybindings": [
 			{
 				"command": "editor.action.insertSnippet",
