@@ -16,6 +16,8 @@ import {
 	TransportKind
 } from 'vscode-languageclient/node';
 
+import { registerGraph } from './graphView';
+
 let client: LanguageClient;
 
 export function activate(context: ExtensionContext) {
@@ -54,8 +56,8 @@ export function activate(context: ExtensionContext) {
 		clientOptions
 	);
 
-	// Start the client. This will also launch the server
-	void client.start();
+	const starting = client.start();
+	registerGraph(context, client, starting);
 }
 
 export function deactivate(): Thenable<void> | undefined {

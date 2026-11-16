@@ -44,6 +44,7 @@ import {
 	highlightTokens,
 	semanticTokenModifiers,
 	semanticTokenTypes,
+	ontologyGraph,
 	outline,
 	references,
 	renameRejection,
@@ -430,6 +431,19 @@ function outlineKind(kind: OutlineKind): SymbolKind {
 interface LocatedSymbol extends SymbolHit {
 	document: TextDocument;
 }
+
+connection.onRequest(
+	'ontodl/graph',
+	(params: { uri?: string }) => {
+		const document = params.uri
+			? documents.get(params.uri)
+			: undefined;
+		const table = document
+			? analysisOf(document).symbols
+			: emptySymbolTable();
+		return ontologyGraph(table);
+	}
+);
 
 // Make the text document manager listen on the connection
 // for open, change and close text document events

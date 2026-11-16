@@ -65,6 +65,21 @@ export interface NameUse extends SourceSpan {
 	kind: SymbolKind | 'entity';
 }
 
+export type BuiltinLink = 'iof' | 'isa' | 'pof' | 'synonym';
+
+export interface Fact extends SourceSpan {
+	subject: string;
+	relation: string;
+	object: string;
+	builtin?: BuiltinLink;
+}
+
+export interface Assignment extends SourceSpan {
+	owner: string;
+	attribute: string;
+	value: string;
+}
+
 export interface SymbolTable {
 	ontology?: OntologySymbol;
 	concepts: Map<string, ConceptSymbol>;
@@ -73,6 +88,8 @@ export interface SymbolTable {
 	attributes: Map<string, AttributeSymbol>;
 	sections: SectionSymbol[];
 	uses: NameUse[];
+	facts: Fact[];
+	assignments: Assignment[];
 }
 
 export type OutlineKind = SymbolKind | 'section' | 'ontology';
@@ -170,7 +187,9 @@ export function emptySymbolTable(): SymbolTable {
 		relations: new Map(),
 		attributes: new Map(),
 		sections: [],
-		uses: []
+		uses: [],
+		facts: [],
+		assignments: []
 	};
 }
 
