@@ -31,7 +31,9 @@
 	},
 	"main": "./client/out/extension",
 	"activationEvents": [
-		"onLanguage:ontodlp"
+		"onLanguage:ontodlp",
+		"onView:ontodl.projectView",
+		"onCommand:ontodl.createProject"
 	],
 	"contributes": {
 		"configuration": {
@@ -68,10 +70,55 @@
 			{
 				"language": "ontodlp",
 				"scopeName": "source.ontodlp",
-				"path": "./client/syntaxes/ontodlp.tmLanguage.json",
-				"configuration": "./language-configuration.json"
+				"path": "./client/syntaxes/ontodlp.tmLanguage.json"
 			}
 		],
+		"configurationDefaults": {
+			"[ontodlp]": {
+				"editor.semanticHighlighting.enabled": true
+			}
+		},
+		"commands": [
+			{
+				"command": "ontodl.createProject",
+				"title": "Create OntoDL+ Project",
+				"category": "OntoDL+",
+				"icon": "$(new-folder)"
+			}
+		],
+		"viewsContainers": {
+			"activitybar": [
+				{
+					"id": "ontodl",
+					"title": "OntoDL+",
+					"icon": "./client/media/ontodl-project.svg"
+				}
+			]
+		},
+		"views": {
+			"ontodl": [
+				{
+					"id": "ontodl.projectView",
+					"name": "Projects",
+					"icon": "./client/media/ontodl-project.svg"
+				}
+			]
+		},
+		"viewsWelcome": [
+			{
+				"view": "ontodl.projectView",
+				"contents": "Create a new OntoDL+ ontology project.\n[Create OntoDL+ Project](command:ontodl.createProject)"
+			}
+		],
+		"menus": {
+			"view/title": [
+				{
+					"command": "ontodl.createProject",
+					"when": "view == ontodl.projectView",
+					"group": "navigation"
+				}
+			]
+		},
 		"snippets": [
 			{
 				"language": "ontodlp",
