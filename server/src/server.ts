@@ -40,6 +40,7 @@ import {
 	analyze,
 	completions,
 	emptySymbolTable,
+	hoverMarkdown,
 	highlightTokens,
 	semanticTokenModifiers,
 	semanticTokenTypes,
