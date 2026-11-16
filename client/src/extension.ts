@@ -7,6 +7,8 @@
 import * as path from 'path';
 import { ExtensionContext, workspace } from 'vscode';
 
+import { registerProjectCommands } from './createProject';
+
 import {
 	LanguageClient,
 	LanguageClientOptions,
@@ -17,6 +19,8 @@ import {
 let client: LanguageClient;
 
 export function activate(context: ExtensionContext) {
+	registerProjectCommands(context);
+
 	// The server is implemented in node
 	const serverModule = context.asAbsolutePath(
 		path.join('server', 'out', 'server.js')

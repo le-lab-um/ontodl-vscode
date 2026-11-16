@@ -22,8 +22,8 @@
     "comments": {
       "patterns": [
         {
-          "name": "comment.line.percent.ontodlp",
-          "match": "%.*$"
+          "name": "comment.line.percentage.ontodlp",
+          "match": "%[^\\r\\n]*"
         }
       ]
     },
@@ -32,37 +32,38 @@
         {
           "name": "string.quoted.double.ontodlp",
           "begin": "\"",
-          "end": "\"|$",
+          "end": "\"|(?=$)",
           "beginCaptures": { "0": { "name": "punctuation.definition.string.begin.ontodlp" } },
-          "endCaptures": { "0": { "name": "punctuation.definition.string.end.ontodlp" } },
-          "patterns": [
-            { "name": "constant.character.escape.ontodlp", "match": "\\\\[\\\\\"'nrt]" }
-          ]
+          "endCaptures": { "0": { "name": "punctuation.definition.string.end.ontodlp" } }
         },
         {
           "name": "string.quoted.single.ontodlp",
           "begin": "'",
-          "end": "'|$",
+          "end": "'|(?=$)",
           "beginCaptures": { "0": { "name": "punctuation.definition.string.begin.ontodlp" } },
-          "endCaptures": { "0": { "name": "punctuation.definition.string.end.ontodlp" } },
-          "patterns": [
-            { "name": "constant.character.escape.ontodlp", "match": "\\\\[\\\\\"'nrt]" }
-          ]
+          "endCaptures": { "0": { "name": "punctuation.definition.string.end.ontodlp" } }
         }
       ]
     },
     "header": {
       "patterns": [
         {
-          "match": "\\b(Ontologia|Ontology)\\b",
-          "name": "keyword.control.ontodlp"
+          "match": "(?<![A-Za-z0-9_\\-/\\u00C0-\\u024F])(Ontologia|Ontology)([ \\t]+)([A-Za-z\\u00C0-\\u024F][A-Za-z0-9_\\-/\\u00C0-\\u024F]*)(?![A-Za-z0-9_\\-/\\u00C0-\\u024F])",
+          "captures": {
+            "1": { "name": "keyword.control.ontology.ontodlp" },
+            "3": { "name": "entity.name.namespace.ontodlp" }
+          }
+        },
+        {
+          "match": "(?<![A-Za-z0-9_\\-/\\u00C0-\\u024F])(?:Ontologia|Ontology)(?![A-Za-z0-9_\\-/\\u00C0-\\u024F])",
+          "name": "keyword.control.ontology.ontodlp"
         }
       ]
     },
     "sections": {
       "patterns": [
         {
-          "match": "\\b(atributos|attributes|dataProperties|propriedadesDados|conceitos|concepts|classes|individuos|individuals|relacoes|relationships|objectProperties|propriedadesObjetos|triplos|triples|restricoes|restrictions)\\b(?=\\s*\\{)",
+          "match": "(?<![A-Za-z0-9_\\-/\\u00C0-\\u024F])(?:propriedadesObjetos|propriedadesDados|objectProperties|dataProperties|relationships|restrictions|individuals|attributes|individuos|restricoes|atributos|conceitos|concepts|relacoes|classes|triplos|triples)(?![A-Za-z0-9_\\-/\\u00C0-\\u024F])",
           "name": "keyword.control.section.ontodlp"
         }
       ]
@@ -70,7 +71,7 @@
     "imports": {
       "patterns": [
         {
-          "match": "\\b(expand|expands)\\b",
+          "match": "(?<![A-Za-z0-9_\\-/\\u00C0-\\u024F])(?:expand)(?![A-Za-z0-9_\\-/\\u00C0-\\u024F])",
           "name": "keyword.control.import.ontodlp"
         }
       ]
@@ -78,23 +79,23 @@
     "types": {
       "patterns": [
         {
-          "match": "\\b(string|int|enum)\\b",
-          "name": "storage.type.ontodlp"
+          "match": "(?<![A-Za-z0-9_\\-/\\u00C0-\\u024F])(?:string|enum|int)(?![A-Za-z0-9_\\-/\\u00C0-\\u024F])",
+          "name": "storage.type.primitive.ontodlp"
         }
       ]
     },
     "relation-metadata": {
       "patterns": [
         {
-          "match": "\\b(domain|dominio|counterdomain|codomain|contradominio|codiminio|props)\\b(?=\\s*:)",
-          "name": "support.type.property-name.ontodlp"
+          "match": "(?<![A-Za-z0-9_\\-/\\u00C0-\\u024F])(?:contradominio|counterdomain|codiminio|codomain|dominio|domain|props)(?![A-Za-z0-9_\\-/\\u00C0-\\u024F])",
+          "name": "keyword.other.relation-metadata.ontodlp"
         }
       ]
     },
     "built-in-relations": {
       "patterns": [
         {
-          "match": "\\b(iof|instancia|instanceof|type|pof|parte|partOf|is-a|subclasse|a|subClassOf|synonym|sinonimo)\\b",
+          "match": "(?<![A-Za-z0-9_\\-/\\u00C0-\\u024F])(?:instanceof|subClassOf|instancia|subclasse|sinonimo|synonym|partOf|parte|type|is\\-a|iof|pof|a)(?![A-Za-z0-9_\\-/\\u00C0-\\u024F])",
           "name": "keyword.operator.relation.ontodlp"
         }
       ]
@@ -102,20 +103,21 @@
     "relation-properties": {
       "patterns": [
         {
-          "match": "\\b(bijecao|bijection|injecao|injection|sobrejecao|surjection|abstracao|abstraction|funcao|function|representacao|representation|sobrejetiva|surjective|simples|simple|inteira|entire|injetiva|injective|inversaDe|inverseOf)\\b",
+          "match": "(?<![A-Za-z0-9_\\-/\\u00C0-\\u024F])(?:representation|representacao|abstraction|sobrejetiva|sobrejecao|surjection|surjective|bijection|injection|abstracao|injective|inversaDe|inverseOf|function|injetiva|bijecao|injecao|simples|inteira|funcao|simple|entire)(?![A-Za-z0-9_\\-/\\u00C0-\\u024F])",
           "name": "constant.language.relation-property.ontodlp"
         }
       ]
     },
     "operators": {
       "patterns": [
-        { "match": ":-|=>|\\\\=|==|=|!", "name": "keyword.operator.ontodlp" },
-        { "match": "\\b(not|nao)\\b", "name": "keyword.operator.logical.ontodlp" }
+        { "match": "=\\[|:-|=>|\\\\=|==|=", "name": "keyword.operator.ontodlp" },
+        { "match": "(?<![A-Za-z0-9_\\-/\\u00C0-\\u024F])(?:not|nao)(?![A-Za-z0-9_\\-/\\u00C0-\\u024F])", "name": "keyword.operator.logical.ontodlp" },
+        { "match": "!", "name": "keyword.operator.logical.ontodlp" }
       ]
     },
     "numbers": {
       "patterns": [
-        { "match": "(?<![\\w-])-?[0-9]+\\b", "name": "constant.numeric.ontodlp" }
+        { "match": "(?<![A-Za-z0-9_\\-/\\u00C0-\\u024F])-?[0-9]+(?![0-9])", "name": "constant.numeric.integer.ontodlp" }
       ]
     },
     "punctuation": {
@@ -127,7 +129,7 @@
     "identifiers": {
       "patterns": [
         {
-          "match": "\\b[A-Za-z\\u00C0-\\u024F][A-Za-z0-9_\\-/\\u00C0-\\u024F]*\\b",
+          "match": "(?<![A-Za-z0-9_\\-/\\u00C0-\\u024F])[A-Za-z\\u00C0-\\u024F][A-Za-z0-9_\\-/\\u00C0-\\u024F]*(?![A-Za-z0-9_\\-/\\u00C0-\\u024F])",
           "name": "variable.other.ontodlp"
         }
       ]
