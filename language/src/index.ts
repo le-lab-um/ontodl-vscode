@@ -1,3 +1,10 @@
+export {
+	highlightTokens,
+	semanticTokenModifiers,
+	semanticTokenTypes
+} from './highlighting.js';
+export type { HighlightToken, HighlightType } from './highlighting.js';
+
 export type DiagnosticSeverity = 'error' | 'warning';
 
 export interface LanguageDiagnostic {
