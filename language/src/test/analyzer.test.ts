@@ -5,8 +5,8 @@ import { describe, test } from 'node:test';
 
 import { analyze } from '../index';
 
-describe('OntoDL+ analyzer', () => {
-	test('accepts the official examples', () => {
+void describe('OntoDL+ analyzer', () => {
+	void test('accepts the official examples', () => {
 		const fixtureNames = [
 			'template.odlp',
 			'mapa.odlp',
@@ -26,7 +26,7 @@ describe('OntoDL+ analyzer', () => {
 		}
 	});
 
-	test('accepts percent comments and the requested aliases', () => {
+	void test('accepts percent comments and the requested aliases', () => {
 		const source = `Ontology demo
 % this is a comment
 atributos { value: int }
@@ -39,18 +39,21 @@ triplos { x = iof => C }
 		assert.deepEqual(analyze(source).diagnostics, []);
 	});
 
-	test('accepts unresolved expand statements mixed with declarations', () => {
-		const source = `Ontology demo
+	void test(
+		'accepts unresolved expand statements mixed with declarations',
+		() => {
+			const source = `Ontology demo
 atributos { expand extra/data.odlp; value: int }
 conceitos { expand extra/classes.odlp; C[value:int] }
 relacoes { expand extra/relations.odlp; r }
 triplos { expand extra/triples.odlp; x = iof => C }
 .`;
 
-		assert.deepEqual(analyze(source).diagnostics, []);
-	});
+			assert.deepEqual(analyze(source).diagnostics, []);
+		}
+	);
 
-	test('requires separators between declarations and triples', () => {
+	void test('requires separators between declarations and triples', () => {
 		const sources = [
 			`Ontology demo atributos { value: int other: string } conceitos { C } relacoes { r } triplos { x = iof => C } .`,
 			`Ontology demo conceitos { Cidade Ligação } relacoes { r } triplos { x = iof => C } .`,
@@ -64,7 +67,7 @@ triplos { expand extra/triples.odlp; x = iof => C }
 		}
 	});
 
-	test('rejects empty section bodies', () => {
+	void test('rejects empty section bodies', () => {
 		const sources = [
 			'Ontology demo atributos { } conceitos { C } relacoes { r } triplos { x = iof => C } .',
 			'Ontology demo conceitos { } relacoes { r } triplos { x = iof => C } .',
@@ -79,7 +82,7 @@ triplos { expand extra/triples.odlp; x = iof => C }
 		}
 	});
 
-	test(
+	void test(
 		'accepts restriction relation aliases and unparenthesized negation',
 		() => {
 			const source = `Ontology demo
@@ -93,7 +96,7 @@ restricoes {
 			assert.deepEqual(analyze(source).diagnostics, []);
 		});
 
-	test('reports offsets for slash comments', () => {
+	void test('reports offsets for slash comments', () => {
 		const source = 'Ontology demo // not a comment\n'
 			+ 'conceitos { C } relacoes { r } triplos { x = iof => C } .';
 		const diagnostics = analyze(source).diagnostics;
@@ -102,7 +105,7 @@ restricoes {
 		assert.equal(diagnostics[0].start, source.indexOf('//'));
 	});
 
-	test('rejects relations as a section keyword', () => {
+	void test('rejects relations as a section keyword', () => {
 		const source = 'Ontology demo conceitos { C } '
 			+ 'relations { r } triplos { x = iof => C } .';
 

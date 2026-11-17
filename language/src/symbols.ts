@@ -220,6 +220,98 @@ export function describe(symbol: DeclaredSymbol): string {
 	return `${symbol.kind} ${symbol.name}`;
 }
 
+export function hoverMarkdown(
+	symbol: DeclaredSymbol,
+	table: SymbolTable
+): string {
+	const sections = [
+		markdownCode(symbol.name),
+		markdownText(symbolKindLabel(symbol.kind))
+	];
+
+	if (symbol.kind === 'attribute') {
+		sections.push(`Tipo: ${markdownText(formatType(symbol.type))}`);
+	}
+	if (symbol.kind === 'relation') {
+		if (symbol.domain) {
+			sections.push(`Domínio: ${markdownText(symbol.domain)}`);
+		}
+		if (symbol.counterdomain) {
+			sections.push(
+				`Contradomínio: ${markdownText(symbol.counterdomain)}`
+			);
+		}
+		if (symbol.inverse) {
+			sections.push(`Inversa: ${markdownText(symbol.inverse)}`);
+		}
+	}
+
+	const type = table.facts.find(fact =>
+		fact.subject === symbol.name && fact.builtin === 'iof'
+	);
+	if (type) {
+		sections.push(`Tipo: ${markdownText(type.object)}`);
+	}
+
+	const assignments = table.assignments
+		.filter(assignment => assignment.owner === symbol.name)
+		.map(assignment => (
+			`- ${markdownCode(assignment.attribute)}: ${markdownText(assignment.value)}`
+		));
+	if (assignments.length > 0) {
+		sections.push(`**Atributos**\n\n${assignments.join('\n')}`);
+	}
+
+	const relations = table.facts
+		.filter(fact =>
+			fact.subject === symbol.name && fact.builtin !== 'iof'
+		)
+		.map(fact =>
+			`- ${markdownCode(fact.relation)}: ${markdownCode(fact.object)}`
+		);
+	if (relations.length > 0) {
+		sections.push(`**Relações**\n\n${relations.join('\n')}`);
+	}
+
+	return sections.join('\n\n');
+}
+
+function markdownText(value: string): string {
+	return value
+		.replaceAll('\\', '\\\\')
+		.replaceAll('*', '\\*')
+		.replaceAll('_', '\\_')
+		.replaceAll('`', '\\`')
+		.replaceAll('[', '\\[')
+		.replaceAll(']', '\\]')
+		.replaceAll('<', '&lt;')
+		.replaceAll('>', '&gt;');
+}
+
+function symbolKindLabel(kind: SymbolKind): string {
+	if (kind === 'concept') {
+		return 'Conceito';
+	}
+	if (kind === 'individual') {
+		return 'Indivíduo';
+	}
+	if (kind === 'relation') {
+		return 'Relação';
+	}
+	return 'Atributo';
+}
+
+function markdownCode(value: string): string {
+	const escaped = value.replaceAll('\n', ' ').replaceAll('\r', ' ');
+	const delimiter = '`'.repeat(
+		Math.max(1, ...Array.from(escaped.matchAll(/`+/gu), match => match[0].length + 1))
+	);
+	const padding = escaped.startsWith('`') || escaped.endsWith('`')
+		? ' '
+		: '';
+	return `${delimiter}${padding}${escaped}${padding}${delimiter}`;
+}
+
 export function outline(table: SymbolTable): OutlineNode[] {
 	const sections = table.sections.map(section => ({
 		name: section.name,

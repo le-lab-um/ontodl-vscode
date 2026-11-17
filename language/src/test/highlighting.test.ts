@@ -31,49 +31,56 @@ function checkRanges(source: string, tokens: HighlightToken[]): void {
 	}
 }
 
-describe('OntoDL+ semantic highlighting', () => {
-	test('classifies declarations and uses through the existing parser', () => {
-		const source = `Ontology demo
+void describe('OntoDL+ semantic highlighting', () => {
+	void test(
+		'classifies declarations and uses through the existing parser',
+		() => {
+			const source = `Ontology demo
 atributos { nome: string, idade: int }
 conceitos { Cidade[nome], Pessoa[idade] }
 individuos { brg, ana }
 relacoes { conhece[domain: Pessoa, codomain: Pessoa] }
 triplos { ana = iof => Pessoa[idade=23]; ana = conhece => brg }
 .`;
-		const analyzed = analyze(source);
-		assert.deepEqual(analyzed.diagnostics, []);
-		const tokens = highlightTokens(source, analyzed.symbols);
+			const analyzed = analyze(source);
+			assert.deepEqual(analyzed.diagnostics, []);
+			const tokens = highlightTokens(source, analyzed.symbols);
 
-		assert.equal(tokenAt(source, tokens, 'Ontology').type, 'keyword');
-		assert.equal(tokenAt(source, tokens, 'demo').type, 'namespace');
-		assert.equal(tokenAt(source, tokens, 'demo').declaration, true);
-		assert.equal(tokenAt(source, tokens, 'atributos').type, 'keyword');
-		assert.equal(tokenAt(source, tokens, 'nome').type, 'property');
-		assert.equal(tokenAt(source, tokens, 'nome').declaration, true);
-		assert.equal(
-			tokenAt(source, tokens, 'nome', source.indexOf('Cidade')).type,
-			'property'
-		);
-		assert.equal(tokenAt(source, tokens, 'string').type, 'type');
-		assert.equal(tokenAt(source, tokens, 'Cidade').type, 'class');
-		assert.equal(tokenAt(source, tokens, 'Pessoa').type, 'class');
-		assert.equal(
-			tokenAt(source, tokens, 'Pessoa', source.indexOf('domain:')).type,
-			'class'
-		);
-		assert.equal(tokenAt(source, tokens, 'brg').type, 'enumMember');
-		assert.equal(tokenAt(source, tokens, 'conhece').type, 'function');
-		assert.equal(
-			tokenAt(source, tokens, 'conhece', source.indexOf('triplos')).type,
-			'function'
-		);
-		assert.equal(tokenAt(source, tokens, 'iof').type, 'operator');
-		assert.equal(tokenAt(source, tokens, '=>').type, 'operator');
-		assert.equal(tokenAt(source, tokens, '23').type, 'number');
-		checkRanges(source, tokens);
-	});
+			assert.equal(tokenAt(source, tokens, 'Ontology').type, 'keyword');
+			assert.equal(tokenAt(source, tokens, 'demo').type, 'namespace');
+			assert.equal(tokenAt(source, tokens, 'demo').declaration, true);
+			assert.equal(tokenAt(source, tokens, 'atributos').type, 'keyword');
+			assert.equal(tokenAt(source, tokens, 'nome').type, 'property');
+			assert.equal(tokenAt(source, tokens, 'nome').declaration, true);
+			assert.equal(
+				tokenAt(source, tokens, 'nome', source.indexOf('Cidade')).type,
+				'property'
+			);
+			assert.equal(tokenAt(source, tokens, 'string').type, 'type');
+			assert.equal(tokenAt(source, tokens, 'Cidade').type, 'class');
+			assert.equal(tokenAt(source, tokens, 'Pessoa').type, 'class');
+			assert.equal(
+				tokenAt(
+					source, tokens, 'Pessoa', source.indexOf('domain:')
+				).type,
+				'class'
+			);
+			assert.equal(tokenAt(source, tokens, 'brg').type, 'enumMember');
+			assert.equal(tokenAt(source, tokens, 'conhece').type, 'function');
+			assert.equal(
+				tokenAt(
+					source, tokens, 'conhece', source.indexOf('triplos')
+				).type,
+				'function'
+			);
+			assert.equal(tokenAt(source, tokens, 'iof').type, 'operator');
+			assert.equal(tokenAt(source, tokens, '=>').type, 'operator');
+			assert.equal(tokenAt(source, tokens, '23').type, 'number');
+			checkRanges(source, tokens);
+		}
+	);
 
-	test('distinguishes spelling from token role', () => {
+	void test('distinguishes spelling from token role', () => {
 		const source = `Ontologia demo
 conceitos { Classe }
 individuos { exemplo }
@@ -98,7 +105,7 @@ triplos { exemplo = iofExtra => Classe; exemplo = is-a => Classe }
 		checkRanges(source, tokens);
 	});
 
-	test('does not invent keywords for unsupported aliases', () => {
+	void test('does not invent keywords for unsupported aliases', () => {
 		const source = 'expands relations iofExtra';
 		const tokens = highlightTokens(source);
 		assert.equal(tokenAt(source, tokens, 'expands').type, 'variable');
@@ -107,7 +114,7 @@ triplos { exemplo = iofExtra => Classe; exemplo = is-a => Classe }
 		checkRanges(source, tokens);
 	});
 
-	test('handles the grouped relationship operator', () => {
+	void test('handles the grouped relationship operator', () => {
 		const source = 'Ontology demo conceitos { C } individuos { x }'
 			+ ' relacoes { r } triplos { x =[ r => C] } .';
 		const tokens = highlightTokens(source, analyze(source).symbols);
@@ -115,7 +122,7 @@ triplos { exemplo = iofExtra => Classe; exemplo = is-a => Classe }
 		checkRanges(source, tokens);
 	});
 
-	test('highlights comments, literals, and UTF-16 offsets', () => {
+	void test('highlights comments, literals, and UTF-16 offsets', () => {
 		const source = `Ontology demo
 % emoji 😀 in a comment
 atributos { nota: string }
@@ -137,7 +144,7 @@ triplos { C = r => C[nota="😀 ok"] }
 		checkRanges(source, tokens);
 	});
 
-	test('recovers unfinished strings without overlapping tokens', () => {
+	void test('recovers unfinished strings without overlapping tokens', () => {
 		const source = 'Ontology demo\nconceitos { C }\nrelacoes { r }'
 			+ '\ntriplos { C = r => C[label="unfinished value\n} .';
 		const tokens = highlightTokens(source);
@@ -150,17 +157,20 @@ triplos { C = r => C[nota="😀 ok"] }
 		checkRanges(source, tokens);
 	});
 
-	test('does not read imported files or color their virtual offsets', () => {
-		const source = 'Ontology demo\n'
-			+ 'conceitos { expand missing.odlp; Cidade }'
-			+ '\nrelacoes { r }\ntriplos { Cidade = r => Cidade }\n.';
-		const tokens = highlightTokens(source, analyze(source).symbols);
-		assert.equal(tokenAt(source, tokens, 'expand').type, 'keyword');
-		assert.equal(tokenAt(source, tokens, 'Cidade').type, 'class');
-		checkRanges(source, tokens);
-	});
+	void test(
+		'does not read imported files or color their virtual offsets',
+		() => {
+			const source = 'Ontology demo\n'
+				+ 'conceitos { expand missing.odlp; Cidade }'
+				+ '\nrelacoes { r }\ntriplos { Cidade = r => Cidade }\n.';
+			const tokens = highlightTokens(source, analyze(source).symbols);
+			assert.equal(tokenAt(source, tokens, 'expand').type, 'keyword');
+			assert.equal(tokenAt(source, tokens, 'Cidade').type, 'class');
+			checkRanges(source, tokens);
+		}
+	);
 
-	test('preserves non-overlapping spans on existing fixtures', () => {
+	void test('preserves non-overlapping spans on existing fixtures', () => {
 		for (const name of [
 			'template.odlp',
 			'mapa.odlp',

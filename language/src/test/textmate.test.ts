@@ -111,22 +111,28 @@ function contains(
 	);
 }
 
-test('TextMate fallback is registered for the semantic tokens language', () => {
-	assert.deepEqual(manifest.contributes.grammars, [{
-		language: 'ontodlp',
-		scopeName: grammar.scopeName,
-		path: './client/syntaxes/ontodlp.tmLanguage.json'
-	}]);
-	assert.equal(grammar.scopeName, 'source.ontodlp');
-	assert.equal(manifest.contributes.languages[0].configuration,
-		'./language-configuration.json');
-	const defaults = manifest.contributes.configurationDefaults['[ontodlp]'];
-	assert.equal(defaults?.['editor.semanticHighlighting.enabled'], true);
-	assert.ok(read('server/src/server.ts').includes('semanticTokensProvider:'));
-	assert.ok(read('server/src/server.ts').includes('semanticTokens.on('));
-});
+void test(
+	'TextMate fallback is registered for the semantic tokens language',
+	() => {
+		assert.deepEqual(manifest.contributes.grammars, [{
+			language: 'ontodlp',
+			scopeName: grammar.scopeName,
+			path: './client/syntaxes/ontodlp.tmLanguage.json'
+		}]);
+		assert.equal(grammar.scopeName, 'source.ontodlp');
+		assert.equal(manifest.contributes.languages[0].configuration,
+			'./language-configuration.json');
+		const defaults
+			= manifest.contributes.configurationDefaults['[ontodlp]'];
+		assert.equal(defaults?.['editor.semanticHighlighting.enabled'], true);
+		assert.ok(read('server/src/server.ts').includes(
+			'semanticTokensProvider:'
+		));
+		assert.ok(read('server/src/server.ts').includes('semanticTokens.on('));
+	}
+);
 
-test('TextMate rules use existing, nonempty, conventional scopes', () => {
+void test('TextMate rules use existing, nonempty, conventional scopes', () => {
 	for (const { include } of grammar.patterns) {
 		assert.ok(include.startsWith('#'));
 		assert.ok(grammar.repository[include.slice(1)], include);
@@ -146,26 +152,29 @@ test('TextMate rules use existing, nonempty, conventional scopes', () => {
 	}
 });
 
-test('all reserved word literals in the parser grammar are highlighted', () => {
-	// The ANTLR grammar defines the vocabulary; no guessed aliases.
-	const parserRules = parserGrammar.split(/^NUMBER\s*$/m)[0];
-	const words = [...parserRules.matchAll(/'([^']+)'/g)]
-		.map(match => match[1])
-		.filter(value => /^[A-Za-z]+(?:-[A-Za-z]+)?$/.test(value));
-	const categories = [
-		'header', 'sections', 'imports', 'types',
-		'relation-metadata', 'built-in-relations',
-		'relation-properties', 'operators'
-	];
-	for (const word of new Set(words)) {
-		const matched = categories.some(category =>
-			matches(category, word).includes(word)
-		);
-		assert.ok(matched, `No fallback highlighting for: ${word}`);
+void test(
+	'all reserved word literals in the parser grammar are highlighted',
+	() => {
+		// The ANTLR grammar defines the vocabulary; no guessed aliases.
+		const parserRules = parserGrammar.split(/^NUMBER\s*$/m)[0];
+		const words = [...parserRules.matchAll(/'([^']+)'/g)]
+			.map(match => match[1])
+			.filter(value => /^[A-Za-z]+(?:-[A-Za-z]+)?$/.test(value));
+		const categories = [
+			'header', 'sections', 'imports', 'types',
+			'relation-metadata', 'built-in-relations',
+			'relation-properties', 'operators'
+		];
+		for (const word of new Set(words)) {
+			const matched = categories.some(category =>
+				matches(category, word).includes(word)
+			);
+			assert.ok(matched, `No fallback highlighting for: ${word}`);
+		}
 	}
-});
+);
 
-test('keywords highlight without requiring the rest of a section', () => {
+void test('keywords highlight without requiring the rest of a section', () => {
 	contains('sections', 'conceitos', ['conceitos']);
 	contains('imports', 'expand', ['expand']);
 	contains('types', 'enum', ['enum']);
@@ -175,19 +184,25 @@ test('keywords highlight without requiring the rest of a section', () => {
 	contains('operators', 'nao', ['nao']);
 });
 
-test('unsupported aliases and identifier fragments are not keywords', () => {
-	for (const word of ['expands', 'relations', 'iofExtra', 'is-a-algo',
-		'meu-iof', 'foo/type', 'a-b', 'parte/inteira', 'my-string', 'int32']) {
-		for (const category of ['header', 'sections', 'imports', 'types',
-			'relation-metadata', 'built-in-relations', 'relation-properties',
-			'operators']) {
-			assert.deepEqual(matches(category, word), [], `${category}: ${word}`);
+void test(
+	'unsupported aliases and identifier fragments are not keywords',
+	() => {
+		for (const word of ['expands', 'relations', 'iofExtra', 'is-a-algo',
+			'meu-iof', 'foo/type', 'a-b', 'parte/inteira', 'my-string',
+			'int32']) {
+			for (const category of ['header', 'sections', 'imports', 'types',
+				'relation-metadata', 'built-in-relations',
+				'relation-properties', 'operators']) {
+				assert.deepEqual(
+					matches(category, word), [], `${category}: ${word}`
+				);
+			}
+			contains('identifiers', word, [word]);
 		}
-		contains('identifiers', word, [word]);
 	}
-});
+);
 
-test('header recognizes the ontology name and Unicode identifiers', () => {
+void test('header recognizes the ontology name and Unicode identifiers', () => {
 	const header = grammar.repository.header.patterns[0];
 	assert.ok(header.match);
 	const groups = new RegExp(header.match).exec('Ontologia Árvore/Europa');
@@ -198,7 +213,7 @@ test('header recognizes the ontology name and Unicode identifiers', () => {
 	contains('identifiers', 'edição/meu-projeto', ['edição/meu-projeto']);
 });
 
-test('punctuation and composite operators remain separated', () => {
+void test('punctuation and composite operators remain separated', () => {
 	contains('operators', '=[ :- => \\= == = !', [
 		'=[', ':-', '=>', '\\=', '==', '=', '!'
 	]);
@@ -208,13 +223,16 @@ test('punctuation and composite operators remain separated', () => {
 	contains('numbers', '15 -23', ['15', '-23']);
 });
 
-test('strings are line bounded and do not claim unsupported escapes', () => {
-	const [double, single] = grammar.repository.strings.patterns;
-	assert.deepEqual([double.begin, double.end], ['"', '"|(?=$)']);
-	assert.deepEqual([single.begin, single.end], ['\'', '\'|(?=$)']);
-	assert.equal(double.patterns, undefined);
-	assert.equal(single.patterns, undefined);
-	contains('comments', '% test with symbols = " //', [
-		'% test with symbols = " //'
-	]);
-});
+void test(
+	'strings are line bounded and do not claim unsupported escapes',
+	() => {
+		const [double, single] = grammar.repository.strings.patterns;
+		assert.deepEqual([double.begin, double.end], ['"', '"|(?=$)']);
+		assert.deepEqual([single.begin, single.end], ['\'', '\'|(?=$)']);
+		assert.equal(double.patterns, undefined);
+		assert.equal(single.patterns, undefined);
+		contains('comments', '% test with symbols = " //', [
+			'% test with symbols = " //'
+		]);
+	}
+);

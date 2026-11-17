@@ -10,39 +10,42 @@ function tempDir(): string {
 	return fs.mkdtempSync(path.join(os.tmpdir(), 'odlp-'));
 }
 
-describe('expand', () => {
-	test('loads section fragments and keeps offsets in the open file', () => {
-		const dir = tempDir();
-		fs.writeFileSync(path.join(dir, 'c.odlp'), 'C[n]');
-		fs.writeFileSync(path.join(dir, 'a.odlp'), 'n: int');
-		const source = `Ontology demo
+void describe('expand', () => {
+	void test(
+		'loads section fragments and keeps offsets in the open file',
+		() => {
+			const dir = tempDir();
+			fs.writeFileSync(path.join(dir, 'c.odlp'), 'C[n]');
+			fs.writeFileSync(path.join(dir, 'a.odlp'), 'n: int');
+			const source = `Ontology demo
 % expand missing.odlp;
 atributos { expand a.odlp; }
 conceitos { expand c.odlp; }
 relacoes { r }
 triplos { C = missing => C[n=1] }
 .`;
-		const file = path.join(dir, 'demo.odlp');
-		const result = analyze(source, file);
-		const expandAt = source.indexOf('expand c.odlp;');
+			const file = path.join(dir, 'demo.odlp');
+			const result = analyze(source, file);
+			const expandAt = source.indexOf('expand c.odlp;');
 
-		assert.deepEqual(result.diagnostics, []);
-		assert.equal(result.symbols.concepts.get('C')?.imported, true);
-		assert.equal(result.symbols.concepts.get('C')?.start, expandAt);
-		assert.equal(
-			result.symbols.attributes.get('n')?.type.kind,
-			'int'
-		);
-		const use = source.indexOf('missing =>');
-		assert.deepEqual(result.semanticDiagnostics, [{
-			severity: 'warning',
-			start: use,
-			end: use + 'missing'.length,
-			message: 'missing not declared'
-		}]);
-	});
+			assert.deepEqual(result.diagnostics, []);
+			assert.equal(result.symbols.concepts.get('C')?.imported, true);
+			assert.equal(result.symbols.concepts.get('C')?.start, expandAt);
+			assert.equal(
+				result.symbols.attributes.get('n')?.type.kind,
+				'int'
+			);
+			const use = source.indexOf('missing =>');
+			assert.deepEqual(result.semanticDiagnostics, [{
+				severity: 'warning',
+				start: use,
+				end: use + 'missing'.length,
+				message: 'missing not declared'
+			}]);
+		}
+	);
 
-	test('warns when the expanded file cannot be read', () => {
+	void test('warns when the expanded file cannot be read', () => {
 		const dir = tempDir();
 		const source = `Ontology demo
 conceitos { expand missing.odlp; C }
@@ -61,7 +64,7 @@ triplos { C = r => C }
 		}]);
 	});
 
-	test('reports a cycle instead of reading the file again', () => {
+	void test('reports a cycle instead of reading the file again', () => {
 		const dir = tempDir();
 		const file = path.join(dir, 'demo.odlp');
 		const source = `Ontology demo

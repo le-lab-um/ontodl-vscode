@@ -20,8 +20,8 @@ function arrows(diagram: string): string[] {
 		.map(match => match[1]);
 }
 
-describe('OntoDL+ graph', () => {
-	test('records one fact for each object in a group', () => {
+void describe('OntoDL+ graph', () => {
+	void test('records one fact for each object in a group', () => {
 		const source = `Ontology demo
 conceitos { C }
 individuos { aa, bb, cc }
@@ -44,24 +44,29 @@ triplos { aa =[ iof => C; r => bb, cc ] }
 		);
 	});
 
-	test('draws each concept, individual, and value as its own node', () => {
-		const diagram = diagramOf(fixture('mapaWithProps.odlp'));
+	void test(
+		'draws each concept, individual, and value as its own node',
+		() => {
+			const diagram = diagramOf(fixture('mapaWithProps.odlp'));
 
-		assert.equal(diagram.includes('subgraph'), false);
-		assert.ok(diagram.includes('[label="Cidade", shape=ellipse]'));
-		assert.ok(diagram.includes('[label="Ligação", shape=ellipse]'));
-		assert.ok(diagram.includes('[label="brg", shape=box]'));
-		assert.ok(diagram.includes('[label="lig-ptl-bcl", shape=box]'));
-		assert.ok(diagram.includes('[label="nome=Braga", shape=box]'));
-		assert.ok(diagram.includes('[label="população=140000", shape=box]'));
-		assert.ok(diagram.includes('[label="distância=19", shape=box]'));
-		assert.ok(arrows(diagram).includes('iof'));
-		assert.ok(arrows(diagram).includes('temDestino'));
-		assert.ok(arrows(diagram).includes('temOrigem'));
-		assert.ok(arrows(diagram).includes('properties'));
-	});
+			assert.equal(diagram.includes('subgraph'), false);
+			assert.ok(diagram.includes('[label="Cidade", shape=ellipse]'));
+			assert.ok(diagram.includes('[label="Ligação", shape=ellipse]'));
+			assert.ok(diagram.includes('[label="brg", shape=box]'));
+			assert.ok(diagram.includes('[label="lig-ptl-bcl", shape=box]'));
+			assert.ok(diagram.includes('[label="nome=Braga", shape=box]'));
+			assert.ok(
+				diagram.includes('[label="população=140000", shape=box]')
+			);
+			assert.ok(diagram.includes('[label="distância=19", shape=box]'));
+			assert.ok(arrows(diagram).includes('iof'));
+			assert.ok(arrows(diagram).includes('temDestino'));
+			assert.ok(arrows(diagram).includes('temOrigem'));
+			assert.ok(arrows(diagram).includes('properties'));
+		}
+	);
 
-	test('keeps separate targets from a grouped triple', () => {
+	void test('keeps separate targets from a grouped triple', () => {
 		const diagram = diagramOf(fixture('mapaWithGroup.odlp'));
 		const braga = diagram.match(
 			/(\w+) \[label="brg", shape=box\]/
@@ -73,7 +78,7 @@ triplos { aa =[ iof => C; r => bb, cc ] }
 		assert.equal(origins.length, 3);
 	});
 
-	test('draws a triple and skips a relation that has none', () => {
+	void test('draws a triple and skips a relation that has none', () => {
 		const diagram = diagramOf(`Ontology demo
 conceitos { A, B, C }
 relacoes {
@@ -89,7 +94,7 @@ triplos { A = is-a => B }
 		assert.deepEqual(arrows(diagram), ['is-a']);
 	});
 
-	test('draws both directions when both triples are written', () => {
+	void test('draws both directions when both triples are written', () => {
 		const diagram = diagramOf(`Ontology demo
 conceitos { A, B }
 individuos { aa, bb }

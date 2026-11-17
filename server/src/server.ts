@@ -39,8 +39,8 @@ import {
 import {
 	analyze,
 	completions,
-	describe,
 	emptySymbolTable,
+	hoverMarkdown,
 	highlightTokens,
 	semanticTokenModifiers,
 	semanticTokenTypes,
@@ -52,7 +52,8 @@ import {
 	type CompletionEntry,
 	type OutlineKind,
 	type OutlineNode,
-	type SymbolHit
+	type SymbolHit,
+	type SymbolTable
 } from '@ontodl/language';
 
 // Create a connection for the server, using Node's IPC as a transport.
@@ -228,8 +229,8 @@ connection.onHover((params): Hover | null => {
 	}
 	return {
 		contents: {
-			kind: MarkupKind.PlainText,
-			value: describe(found.symbol)
+			kind: MarkupKind.Markdown,
+			value: hoverMarkdown(found.symbol, found.symbols)
 		},
 		range: rangeOf(found.document, found.start, found.end)
 	};
@@ -330,14 +331,15 @@ function locate(uri: string, position: Position): LocatedSymbol | undefined {
 	if (!document) {
 		return undefined;
 	}
+	const analysis = analysisOf(document);
 	const hit = symbolAt(
-		analysisOf(document).symbols,
+		analysis.symbols,
 		document.offsetAt(position)
 	);
 	if (!hit) {
 		return undefined;
 	}
-	return { document, ...hit };
+	return { document, symbols: analysis.symbols, ...hit };
 }
 
 function rangeOf(document: TextDocument, start: number, end: number) {
@@ -430,6 +432,7 @@ function outlineKind(kind: OutlineKind): SymbolKind {
 
 interface LocatedSymbol extends SymbolHit {
 	document: TextDocument;
+	symbols: SymbolTable;
 }
 
 connection.onRequest(

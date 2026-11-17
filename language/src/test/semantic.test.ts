@@ -5,26 +5,29 @@ import { describe, test } from 'node:test';
 
 import { analyze } from '../index';
 
-describe('OntoDL+ semantic analysis', () => {
-	test('reports no semantic diagnostics for the official examples', () => {
-		const fixtureNames = [
-			'template.odlp',
-			'mapa.odlp',
-			'mapaWithGroup.odlp',
-			'mapaWithProps.odlp',
-			'mapaWithAtribs.odlp'
-		];
+void describe('OntoDL+ semantic analysis', () => {
+	void test(
+		'reports no semantic diagnostics for the official examples',
+		() => {
+			const fixtureNames = [
+				'template.odlp',
+				'mapa.odlp',
+				'mapaWithGroup.odlp',
+				'mapaWithProps.odlp',
+				'mapaWithAtribs.odlp'
+			];
 
-		for (const fixtureName of fixtureNames) {
-			const fixturePath = path.resolve(__dirname,
-				'../../test/fixtures',
-				fixtureName);
-			const result = analyze(fs.readFileSync(fixturePath, 'utf8'));
-			assert.deepEqual(result.semanticDiagnostics, [], fixtureName);
+			for (const fixtureName of fixtureNames) {
+				const fixturePath = path.resolve(__dirname,
+					'../../test/fixtures',
+					fixtureName);
+				const result = analyze(fs.readFileSync(fixturePath, 'utf8'));
+				assert.deepEqual(result.semanticDiagnostics, [], fixtureName);
+			}
 		}
-	});
+	);
 
-	test('warns about an individual declared more than once', () => {
+	void test('warns about an individual declared more than once', () => {
 		const source = `Ontology demo
 conceitos { C }
 individuos { x, x }
@@ -44,8 +47,10 @@ triplos { x = iof => C }
 		}]);
 	});
 
-	test('accepts declared names, attributes, domains and inverses', () => {
-		const source = `Ontology demo
+	void test(
+		'accepts declared names, attributes, domains and inverses',
+		() => {
+			const source = `Ontology demo
 atributos { n: int, color: enum(red, blue) }
 conceitos { C[n, color, note:string] }
 individuos { x }
@@ -53,11 +58,12 @@ relacoes { r[dominio:C, contradominio:C, props:inversaDe=s], s }
 triplos { x = iof => C[n=1, color=red, note="hello"] }
 .`;
 
-		assert.deepEqual(analyze(source).diagnostics, []);
-		assert.deepEqual(analyze(source).semanticDiagnostics, []);
-	});
+			assert.deepEqual(analyze(source).diagnostics, []);
+			assert.deepEqual(analyze(source).semanticDiagnostics, []);
+		}
+	);
 
-	test('warns about undeclared names in a triple', () => {
+	void test('warns about undeclared names in a triple', () => {
 		const source = `Ontology demo
 conceitos { C }
 individuos { x }
@@ -76,7 +82,7 @@ triplos {
 		]);
 	});
 
-	test('warns when a relation is used as a triple object', () => {
+	void test('warns when a relation is used as a triple object', () => {
 		const source = `Ontology demo
 conceitos { C }
 individuos { x }
@@ -93,7 +99,7 @@ triplos { x = iof => likes }
 		}]);
 	});
 
-	test('warns about undeclared names in a grouped triple', () => {
+	void test('warns about undeclared names in a grouped triple', () => {
 		const source = `Ontology demo
 conceitos { C }
 individuos { x }
@@ -109,20 +115,23 @@ triplos { x =[ iof => MissingConcept; missingRel => one, two ] }
 		]);
 	});
 
-	test('warns about concepts and relations declared more than once', () => {
-		const source = `Ontology demo
+	void test(
+		'warns about concepts and relations declared more than once',
+		() => {
+			const source = `Ontology demo
 conceitos { City, City }
 relacoes { links, links }
 triplos { City = links => City }
 .`;
 
-		assert.deepEqual(analyze(source).semanticDiagnostics, [
-			warning(source, 'City', 'City declared more than once', 1),
-			warning(source, 'links', 'links declared more than once', 1)
-		]);
-	});
+			assert.deepEqual(analyze(source).semanticDiagnostics, [
+				warning(source, 'City', 'City declared more than once', 1),
+				warning(source, 'links', 'links declared more than once', 1)
+			]);
+		}
+	);
 
-	test('warns when domain or counterdomain is not a concept', () => {
+	void test('warns when domain or counterdomain is not a concept', () => {
 		const source = `Ontology demo
 conceitos { C }
 individuos { x }
@@ -147,7 +156,7 @@ triplos { x = iof => C }
 		]);
 	});
 
-	test('warns when an inverse is not a relation', () => {
+	void test('warns when an inverse is not a relation', () => {
 		const source = `Ontology demo
 conceitos { C }
 relacoes { r[props:inversaDe=missingRel] }
@@ -159,7 +168,7 @@ triplos { C = r => C }
 		]);
 	});
 
-	test('warns about attribute names and values in triples', () => {
+	void test('warns about attribute names and values in triples', () => {
 		const source = `Ontology demo
 atributos { n: int, label: string }
 conceitos { C[n, label, ghost] }
@@ -176,31 +185,34 @@ triplos { x = iof => C[n="no", label=1, other="a"] }
 		]);
 	});
 
-	test('warns when an attribute type conflicts with a previous one', () => {
-		const source = `Ontology demo
+	void test(
+		'warns when an attribute type conflicts with a previous one',
+		() => {
+			const source = `Ontology demo
 atributos { count: int, count: string }
 conceitos { C[count:string] }
 relacoes { r }
 triplos { C = r => C }
 .`;
-		const secondCount = source.indexOf('count: string');
-		const conceptCount = source.indexOf('count:string');
+			const secondCount = source.indexOf('count: string');
+			const conceptCount = source.indexOf('count:string');
 
-		assert.deepEqual(analyze(source).semanticDiagnostics, [
-			{
-				severity: 'warning',
-				start: secondCount,
-				end: secondCount + 'count'.length,
-				message: 'count declared more than once'
-			},
-			{
-				severity: 'warning',
-				start: conceptCount,
-				end: conceptCount + 'count'.length,
-				message: 'count type does not match previous declaration'
-			}
-		]);
-	});
+			assert.deepEqual(analyze(source).semanticDiagnostics, [
+				{
+					severity: 'warning',
+					start: secondCount,
+					end: secondCount + 'count'.length,
+					message: 'count declared more than once'
+				},
+				{
+					severity: 'warning',
+					start: conceptCount,
+					end: conceptCount + 'count'.length,
+					message: 'count type does not match previous declaration'
+				}
+			]);
+		}
+	);
 });
 
 function warning(
